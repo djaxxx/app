@@ -119,6 +119,30 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        {/* Trust Badges */}
+        <View style={styles.trustSection}>
+          <View style={styles.trustRow}>
+            <View style={styles.trustBadge}>
+              <Text style={styles.trustEmoji}>⭐</Text>
+              <Text style={styles.trustText}>Note moyenne{'\n'}5/5</Text>
+            </View>
+            <View style={styles.trustBadge}>
+              <Text style={styles.trustEmoji}>✅</Text>
+              <Text style={styles.trustText}>DJ Pro Vérifiés{'\n'}SIRET / ASSURANCE</Text>
+            </View>
+          </View>
+          <View style={styles.trustRow}>
+            <View style={styles.trustBadge}>
+              <Text style={styles.trustEmoji}>🎉</Text>
+              <Text style={styles.trustText}>Annuaire Gratuit{'\n'}pour client</Text>
+            </View>
+            <View style={styles.trustBadge}>
+              <Text style={styles.trustEmoji}>🔒</Text>
+              <Text style={styles.trustText}>Paiement{'\n'}sécurisé</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Search */}
         <View style={styles.searchSection}>
           <SearchBar
@@ -158,7 +182,7 @@ export default function HomeScreen() {
 
         {/* DJ List */}
         <View style={styles.djListSection}>
-          <Text style={styles.sectionTitle}>DJs Disponibles</Text>
+          <Text style={styles.sectionTitle}>DJs disponibles près de chez vous !</Text>
           
           {loading ? (
             <ActivityIndicator size="large" color="#8B5CF6" style={styles.loader} />
@@ -248,6 +272,38 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
+  },
+  trustSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  trustBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  trustEmoji: {
+    fontSize: 22,
+    marginRight: 8,
+  },
+  trustText: {
+    color: '#ccc',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 16,
+    flex: 1,
   },
   headerLeft: {
     flexDirection: 'row',
