@@ -230,7 +230,11 @@ export default function DashboardScreen() {
                 <Text style={styles.statLabel}>Vues du profil</Text>
               </View>
 
-              <View style={styles.statCard}>
+              <TouchableOpacity
+                style={styles.statCard}
+                onPress={() => router.push('/my-contacts')}
+                activeOpacity={0.7}
+              >
                 <Ionicons name="mail" size={32} color="#10B981" />
                 <Text style={styles.statValue}>{dashboard?.nombre_demandes || 0}</Text>
                 <Text style={styles.statLabel}>Demandes</Text>
@@ -239,7 +243,7 @@ export default function DashboardScreen() {
                     <Text style={styles.notificationText}>{dashboard?.demandes_non_lues}</Text>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.statCard}>
                 <Ionicons name="star" size={32} color="#F59E0B" />
@@ -267,9 +271,17 @@ export default function DashboardScreen() {
                 <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.actionItem}>
+              <TouchableOpacity
+                style={styles.actionItem}
+                onPress={() => router.push('/my-contacts')}
+              >
                 <Ionicons name="mail" size={24} color="#10B981" />
                 <Text style={styles.actionText}>Mes demandes de contact</Text>
+                {(dashboard?.demandes_non_lues ?? 0) > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationText}>{dashboard.demandes_non_lues}</Text>
+                  </View>
+                )}
                 <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
 
