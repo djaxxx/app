@@ -25,7 +25,7 @@ export default function SubscriptionCancelScreen() {
         <View style={styles.infoBox}>
           <Ionicons name="information-circle" size={24} color="#8B5CF6" />
           <Text style={styles.infoText}>
-            L'abonnement DJ Match coûte seulement 5€/mois et vous permet d'être visible par des milliers de clients potentiels.
+            L'abonnement DJ Match coûte seulement 8€/mois ou 80€/an et vous permet d'être visible par des milliers de clients potentiels.
           </Text>
         </View>
         <Button

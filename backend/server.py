@@ -733,6 +733,23 @@ async def get_dj_reviews(user_id: str):
 # ===================
 # STRIPE SUBSCRIPTION
 # ===================
+class SubscriptionPlan(str, Enum):
+    MONTHLY = "monthly"
+    ANNUAL = "annual"
+
+SUBSCRIPTION_PRICES = {
+    "monthly": {"amount": 8.00, "days": 30, "label": "Mensuel (8€/mois)"},
+    "annual": {"amount": 80.00, "days": 365, "label": "Annuel (80€/an)"}
+}
+
+@api_router.get("/subscription/plans")
+async def get_subscription_plans():
+    """Get available subscription plans"""
+    return [
+        {"id": "monthly", "amount": 8.00, "currency": "eur", "label": "Mensuel", "description": "8€/mois", "days": 30},
+        {"id": "annual", "amount": 80.00, "currency": "eur", "label": "Annuel", "description": "80€/an (économisez 16€)", "days": 365}
+    ]
+
 @api_router.post("/subscription/create-checkout")
 async def create_subscription_checkout(request: Request):
     """Create a Stripe checkout session for DJ subscription"""
@@ -740,9 +757,15 @@ async def create_subscription_checkout(request: Request):
     
     body = await request.json()
     origin_url = body.get("origin_url", "")
+    plan = body.get("plan", "monthly")  # Default to monthly
     
     if not origin_url:
         raise HTTPException(status_code=400, detail="origin_url requis")
+    
+    if plan not in SUBSCRIPTION_PRICES:
+        raise HTTPException(status_code=400, detail="Plan invalide")
+    
+    plan_details = SUBSCRIPTION_PRICES[plan]
     
     try:
         from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
@@ -756,13 +779,15 @@ async def create_subscription_checkout(request: Request):
         cancel_url = f"{origin_url}/subscription/cancel"
         
         checkout_request = CheckoutSessionRequest(
-            amount=5.00,  # 5€ monthly subscription
+            amount=plan_details["amount"],
             currency="eur",
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
                 "user_id": user_data["user_id"],
-                "type": "dj_subscription"
+                "type": "dj_subscription",
+                "plan": plan,
+                "days": str(plan_details["days"])
             }
         )
         
@@ -773,15 +798,17 @@ async def create_subscription_checkout(request: Request):
             "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
             "session_id": session.session_id,
             "user_id": user_data["user_id"],
-            "amount": 5.00,
+            "amount": plan_details["amount"],
             "currency": "eur",
             "type": "subscription",
+            "plan": plan,
+            "days": plan_details["days"],
             "status": "pending",
             "payment_status": "initiated",
             "created_at": datetime.now(timezone.utc)
         })
         
-        return {"checkout_url": session.url, "session_id": session.session_id}
+        return {"checkout_url": session.url, "session_id": session.session_id, "plan": plan, "amount": plan_details["amount"]}
     
     except Exception as e:
         logger.error(f"Stripe checkout error: {str(e)}")
@@ -815,13 +842,16 @@ async def get_subscription_status(session_id: str, request: Request):
         if status.payment_status == "paid":
             transaction = await db.payment_transactions.find_one({"session_id": session_id})
             if transaction and transaction.get("status") != "completed":
-                subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
+                # Get days from transaction (default to 30 for monthly)
+                days = transaction.get("days", 30)
+                subscription_end = datetime.now(timezone.utc) + timedelta(days=days)
                 
                 await db.dj_profiles.update_one(
                     {"user_id": transaction["user_id"]},
                     {"$set": {
                         "subscription_status": "active",
                         "subscription_end_date": subscription_end,
+                        "subscription_plan": transaction.get("plan", "monthly"),
                         "is_active": True
                     }}
                 )
@@ -859,14 +889,17 @@ async def stripe_webhook(request: Request):
         
         if webhook_response.payment_status == "paid":
             user_id = webhook_response.metadata.get("user_id")
+            plan = webhook_response.metadata.get("plan", "monthly")
+            days = int(webhook_response.metadata.get("days", "30"))
             if user_id:
-                subscription_end = datetime.now(timezone.utc) + timedelta(days=30)
+                subscription_end = datetime.now(timezone.utc) + timedelta(days=days)
                 
                 await db.dj_profiles.update_one(
                     {"user_id": user_id},
                     {"$set": {
                         "subscription_status": "active",
                         "subscription_end_date": subscription_end,
+                        "subscription_plan": plan,
                         "is_active": True
                     }}
                 )

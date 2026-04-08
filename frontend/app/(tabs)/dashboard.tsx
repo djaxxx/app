@@ -21,6 +21,8 @@ export default function DashboardScreen() {
   const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('monthly');
+  const [subscribing, setSubscribing] = useState(false);
 
   const loadDashboard = async () => {
     if (!isAuthenticated || !user?.is_dj) {
@@ -48,15 +50,18 @@ export default function DashboardScreen() {
     loadDashboard();
   };
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     try {
+      setSubscribing(true);
       const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const result = await api.createSubscriptionCheckout(originUrl);
+      const result = await api.createSubscriptionCheckout(originUrl, plan);
       if (typeof window !== 'undefined' && result.checkout_url) {
         window.location.href = result.checkout_url;
       }
     } catch (error) {
       console.error('Subscription error:', error);
+    } finally {
+      setSubscribing(false);
     }
   };
 
@@ -120,17 +125,59 @@ export default function DashboardScreen() {
 
         {/* Subscription Status */}
         {dashboard?.subscription_status !== 'active' && (
-          <View style={styles.subscriptionAlert}>
-            <Ionicons name="warning" size={24} color="#F59E0B" />
-            <View style={styles.subscriptionAlertContent}>
-              <Text style={styles.subscriptionAlertTitle}>Abonnement inactif</Text>
-              <Text style={styles.subscriptionAlertText}>
-                Votre profil n'est pas visible. Activez votre abonnement (5€/mois)
-              </Text>
+          <View style={styles.subscriptionSection}>
+            <View style={styles.subscriptionHeader}>
+              <Ionicons name="warning" size={24} color="#F59E0B" />
+              <Text style={styles.subscriptionTitle}>Abonnement inactif</Text>
             </View>
+            <Text style={styles.subscriptionSubtitle}>
+              Votre profil n'est pas visible. Choisissez votre formule :
+            </Text>
+            
+            <View style={styles.plansContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.planCard,
+                  selectedPlan === 'monthly' && styles.planCardSelected,
+                ]}
+                onPress={() => setSelectedPlan('monthly')}
+              >
+                <View style={styles.planHeader}>
+                  <Text style={styles.planName}>Mensuel</Text>
+                  {selectedPlan === 'monthly' && (
+                    <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                  )}
+                </View>
+                <Text style={styles.planPrice}>8€</Text>
+                <Text style={styles.planPeriod}>par mois</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.planCard,
+                  selectedPlan === 'annual' && styles.planCardSelected,
+                ]}
+                onPress={() => setSelectedPlan('annual')}
+              >
+                <View style={styles.planBadge}>
+                  <Text style={styles.planBadgeText}>-17%</Text>
+                </View>
+                <View style={styles.planHeader}>
+                  <Text style={styles.planName}>Annuel</Text>
+                  {selectedPlan === 'annual' && (
+                    <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                  )}
+                </View>
+                <Text style={styles.planPrice}>80€</Text>
+                <Text style={styles.planPeriod}>par an</Text>
+                <Text style={styles.planSaving}>Économisez 16€</Text>
+              </TouchableOpacity>
+            </View>
+
             <Button
-              title="S'abonner"
-              onPress={handleSubscribe}
+              title={subscribing ? 'Chargement...' : `S'abonner (${selectedPlan === 'monthly' ? '8€/mois' : '80€/an'})`}
+              onPress={() => handleSubscribe(selectedPlan)}
+              loading={subscribing}
               style={styles.subscribeButton}
             />
           </View>
@@ -284,9 +331,91 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  subscriptionSection: {
+    backgroundColor: '#1a1a1a',
+    marginHorizontal: 20,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  subscriptionTitle: {
+    color: '#F59E0B',
+    fontSize: 18,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  subscriptionSubtitle: {
+    color: '#888',
+    fontSize: 14,
+    marginBottom: 16,
+  },
+  plansContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  planCard: {
+    width: '48%',
+    backgroundColor: '#0c0c0c',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#2a2a2a',
+    position: 'relative',
+  },
+  planCardSelected: {
+    borderColor: '#8B5CF6',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+  },
+  planBadge: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  planBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  planHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  planName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  planPrice: {
+    color: '#8B5CF6',
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  planPeriod: {
+    color: '#888',
+    fontSize: 14,
+  },
+  planSaving: {
+    color: '#10B981',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
+  },
   subscribeButton: {
-    paddingHorizontal: 16,
-    height: 40,
+    marginTop: 8,
   },
   statsGrid: {
     flexDirection: 'row',

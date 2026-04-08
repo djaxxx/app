@@ -148,10 +148,21 @@ class ApiService {
   }
 
   // Subscription
-  async createSubscriptionCheckout(originUrl: string) {
-    return this.request<{ checkout_url: string; session_id: string }>('/api/subscription/create-checkout', {
+  async getSubscriptionPlans() {
+    return this.request<{
+      id: string;
+      amount: number;
+      currency: string;
+      label: string;
+      description: string;
+      days: number;
+    }[]>('/api/subscription/plans');
+  }
+
+  async createSubscriptionCheckout(originUrl: string, plan: 'monthly' | 'annual' = 'monthly') {
+    return this.request<{ checkout_url: string; session_id: string; plan: string; amount: number }>('/api/subscription/create-checkout', {
       method: 'POST',
-      body: JSON.stringify({ origin_url: originUrl }),
+      body: JSON.stringify({ origin_url: originUrl, plan }),
     });
   }
 
