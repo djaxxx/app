@@ -236,7 +236,7 @@ backend:
 
   - task: "Stripe Subscription API"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
@@ -248,6 +248,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ Stripe integration failing - API endpoints implemented correctly but failing due to invalid/mock API key 'mk_GDoeMuVyTDCWy4'. Error: 'Invalid API Key provided'. Code structure is correct, needs valid Stripe API key for production."
+      - working: true
+        agent: "testing"
+        comment: "✅ Stripe subscription API now working with valid test API key 'sk_test_9YgiwNBcdgZzK21V7wYDtmBO002IlPfNx0'. Successfully tested: POST /api/subscription/create-checkout creates valid Stripe checkout sessions (5€ monthly subscription), payment transactions recorded in database, GET /api/subscription/status handles session queries, POST /api/webhook/stripe processes webhooks correctly. All endpoints functional."
 
 frontend:
   - task: "Home Screen with DJ Search"
@@ -364,3 +367,5 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: "MVP implementation complete. Backend APIs for SIRET verification, auth, DJ management, contact, reviews, and Stripe subscriptions are implemented. Frontend has all core screens. SIRET verification with INSEE API confirmed working with real SIRET number."
+  - agent: "testing"
+    message: "✅ Stripe subscription API testing completed successfully with valid test API key. All endpoints working: checkout creation returns valid Stripe URLs, payment transactions recorded in database, status endpoint handles queries, webhook endpoint processes requests. Previous API key issue resolved. Stripe integration fully functional for 5€ monthly DJ subscriptions."
