@@ -35,12 +35,19 @@ Premium DJ directory platform for France connecting professional DJs with client
 - New message notifications
 
 ### Client Side
-- Search by city/department/region
+- Search by city/department/region (smart search - auto-detects regions/departments)
 - Filter by event type, budget, rating
 - "Verified DJ only" filter
 - Modern card display (Airbnb style)
 - Quick contact form
 - Direct call/WhatsApp option
+
+### Geographic Search (Smart Resolution)
+- Uses French Government API (geo.api.gouv.fr) for 35,000+ communes
+- Searches across: ville, zone_intervention, region_name, department_name, region_code, department_code
+- Auto-detects if search term is a region (ex: "Normandie") or department (ex: "Orne")
+- Auto-geocodes DJ city on registration and profile update
+- Supports partial city name matching (ex: "La Chapelle" matches "La Chapelle-près-Sées")
 
 ## Technical Stack
 - Frontend: Expo React Native (mobile-first)
