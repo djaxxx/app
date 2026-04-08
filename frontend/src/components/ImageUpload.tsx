@@ -13,6 +13,23 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 
+// Helper: convert blob/uri to base64 on web
+const uriToBase64 = async (uri: string): Promise<string> => {
+  if (uri.startsWith('data:')) return uri;
+  try {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return uri;
+  }
+};
+
 interface ImageUploadProps {
   image: string | null;
   onImageChange: (base64: string | null) => void;
@@ -49,16 +66,18 @@ export function ImageUpload({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: circular ? [1, 1] : [4, 3],
-        quality: 0.7,
+        quality: 0.5,
         base64: true,
       });
 
       if (!result.canceled && result.assets[0]) {
-        if (result.assets[0].base64) {
-          const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-          onImageChange(base64Image);
-        } else if (result.assets[0].uri) {
-          onImageChange(result.assets[0].uri);
+        const asset = result.assets[0];
+        if (asset.base64) {
+          onImageChange(`data:image/jpeg;base64,${asset.base64}`);
+        } else if (asset.uri) {
+          // Web: convert blob URI to base64
+          const base64 = await uriToBase64(asset.uri);
+          onImageChange(base64);
         }
       }
     } catch (error) {
@@ -90,16 +109,17 @@ export function ImageUpload({
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: circular ? [1, 1] : [4, 3],
-        quality: 0.7,
+        quality: 0.5,
         base64: true,
       });
 
       if (!result.canceled && result.assets[0]) {
-        if (result.assets[0].base64) {
-          const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-          onImageChange(base64Image);
-        } else if (result.assets[0].uri) {
-          onImageChange(result.assets[0].uri);
+        const asset = result.assets[0];
+        if (asset.base64) {
+          onImageChange(`data:image/jpeg;base64,${asset.base64}`);
+        } else if (asset.uri) {
+          const base64 = await uriToBase64(asset.uri);
+          onImageChange(base64);
         }
       }
     } catch (error) {
@@ -260,17 +280,21 @@ export function GalleryUpload({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.7,
+        quality: 0.5,
         base64: true,
       });
 
       if (!result.canceled && result.assets[0]) {
-        if (result.assets[0].base64) {
-          const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-          onImagesChange([...images, base64Image]);
-        } else if (result.assets[0].uri) {
-          onImagesChange([...images, result.assets[0].uri]);
+        const asset = result.assets[0];
+        let imageData: string;
+        if (asset.base64) {
+          imageData = `data:image/jpeg;base64,${asset.base64}`;
+        } else if (asset.uri) {
+          imageData = await uriToBase64(asset.uri);
+        } else {
+          return;
         }
+        onImagesChange([...images, imageData]);
       }
     } catch (error) {
       console.error('Image picker error:', error);

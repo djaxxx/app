@@ -98,11 +98,20 @@ export default function EditDJProfileScreen() {
     return numbers ? parseInt(numbers[0]) : 0;
   };
 
+  const showMessage = (title: string, message: string, onOk?: () => void) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`);
+      if (onOk) onOk();
+    } else {
+      Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
+    }
+  };
+
   const handleSave = async () => {
     // Validate minimum tarif
     const price = extractPrice(formData.tarif_indicatif);
     if (price < 800) {
-      Alert.alert('Tarif minimum requis', 'Le tarif indicatif doit être d\'au moins 800€. Tarif détecté: ' + (price > 0 ? price + '€' : 'non renseigné'));
+      showMessage('Tarif minimum requis', 'Le tarif indicatif doit être d\'au moins 800€. Tarif détecté: ' + (price > 0 ? price + '€' : 'non renseigné'));
       return;
     }
 
@@ -113,11 +122,9 @@ export default function EditDJProfileScreen() {
         annees_experience: parseInt(formData.annees_experience) || 0,
       });
       await checkAuth();
-      Alert.alert('Succès', 'Profil mis à jour avec succès', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      showMessage('Succès', 'Profil mis à jour avec succès', () => router.back());
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Erreur lors de la sauvegarde');
+      showMessage('Erreur', error.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
