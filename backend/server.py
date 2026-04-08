@@ -17,7 +17,7 @@ import re
 from france_geo import (
     REGIONS_FRANCE, DEPARTMENTS_FRANCE, MAJOR_CITIES_FRANCE,
     get_department_for_city, get_all_regions, get_all_departments,
-    get_departments_by_region
+    get_departments_by_region, find_region_by_name, find_department_by_name
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -654,6 +654,19 @@ async def update_dj_profile(update_data: DJProfileUpdate, request: Request):
     update_dict = {k: v for k, v in update_data.dict().items() if v is not None}
     update_dict["updated_at"] = datetime.now(timezone.utc)
     
+    # Auto-geocode city if ville is being updated
+    if update_data.ville:
+        geo_info = get_department_for_city(update_data.ville)
+        if geo_info:
+            update_dict["department_code"] = geo_info.get("department_code", "")
+            update_dict["department_name"] = geo_info.get("department_name", "")
+            update_dict["region_code"] = geo_info.get("region_code", "")
+            update_dict["region_name"] = geo_info.get("region_name", "")
+            if not update_dict.get("latitude"):
+                update_dict["latitude"] = geo_info.get("lat")
+            if not update_dict.get("longitude"):
+                update_dict["longitude"] = geo_info.get("lon")
+    
     # Get current profile to recalculate completion
     current = await db.dj_profiles.find_one({"user_id": user_id}, {"_id": 0})
     merged = {**current, **update_dict}
@@ -748,10 +761,40 @@ async def list_djs(
     query = {"is_active": True, "subscription_status": "active"}
     
     if ville:
-        query["$or"] = [
+        # Smart search: check city name, zone_intervention, region and department
+        search_conditions = [
             {"ville": {"$regex": ville, "$options": "i"}},
-            {"zone_intervention": {"$regex": ville, "$options": "i"}}
+            {"zone_intervention": {"$regex": ville, "$options": "i"}},
+            {"region_name": {"$regex": ville, "$options": "i"}},
+            {"department_name": {"$regex": ville, "$options": "i"}},
         ]
+        
+        # Check if search term is a known region name
+        region_match = find_region_by_name(ville)
+        if region_match:
+            search_conditions.append({"region_code": region_match["code"]})
+            search_conditions.append({"region_name": region_match["name"]})
+        
+        # Check if search term is a known department name
+        dept_match = find_department_by_name(ville)
+        if dept_match:
+            search_conditions.append({"department_code": dept_match["code"]})
+            search_conditions.append({"department_name": dept_match["name"]})
+        
+        # Also try to resolve the search term as a city via geo API
+        geo_info = get_department_for_city(ville)
+        if geo_info:
+            # If the search term resolves to a city, also include DJs in the same department/region
+            if geo_info.get("region_name"):
+                search_conditions.append({"region_name": geo_info["region_name"]})
+            if geo_info.get("department_name"):
+                search_conditions.append({"department_name": geo_info["department_name"]})
+            if geo_info.get("region_code"):
+                search_conditions.append({"region_code": geo_info["region_code"]})
+            if geo_info.get("department_code"):
+                search_conditions.append({"department_code": geo_info["department_code"]})
+        
+        query["$or"] = search_conditions
     
     if type_evenement:
         query["types_evenements"] = {"$in": [type_evenement]}
@@ -1247,9 +1290,8 @@ async def admin_create_dj(request: Request):
     city = body.get("ville", "")
     geo_data = {}
     if city:
-        from france_geo import lookup_city
-        geo_result = lookup_city(city)
-        if "department_name" in geo_result:
+        geo_result = get_department_for_city(city)
+        if geo_result and "department_name" in geo_result:
             geo_data = geo_result
     
     # Create DJ profile with active subscription (FREE)

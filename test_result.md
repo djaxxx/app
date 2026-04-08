@@ -297,6 +297,21 @@ backend:
         agent: "testing"
         comment: "✅ Geographic Lookup API fully functional - GET /api/geo/lookup-city correctly returns department_name and region_name for French cities (tested Paris, Lyon, Marseille, Toulouse, Nice). GET /api/geo/regions returns 18 French regions including expected ones. GET /api/geo/departments returns 99 departments, and filtering by region_code=IDF correctly returns 8 Île-de-France departments including Paris (75)."
 
+  - task: "Smart Geographic Search (Region/Department/Small City resolution)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "MAJOR FIX: Updated GET /api/djs search to also match region_name, department_name, region_code, department_code fields. Added smart resolution: if user types 'Normandie' it detects it as a region and matches all DJs in that region. Also fixed admin_create_dj which called non-existent lookup_city() function (replaced with get_department_for_city()). Added auto-geocoding on DJ profile update. Fixed DJ AS' data in DB (was missing region_name/department_name). Added find_region_by_name() and find_department_by_name() helpers to france_geo.py."
+      - working: true
+        agent: "testing"
+        comment: "✅ Smart Geographic Search FULLY WORKING! All 8 test scenarios passed: 1) Search 'Normandie' → found DJ AS' (region match), 2) Search 'Orne' → found DJ AS' (department match), 3) Search 'La Chapelle' → found DJ AS' (partial city match), 4) Search 'Sarthe' → found DJ AS' (zone_intervention match), 5) Search 'Bretagne' → correctly returned 0 results, 6) All DJs endpoint → found DJ AS' with active subscription, 7) Geo lookup 'La Chapelle-près-Sées' → returned correct region=Normandie, department=Orne, 8) Geo lookup 'Sées' → returned valid region data. Geographic APIs working: /geo/regions returns 18 regions, /geo/departments returns 99 departments. Smart search logic correctly matches ville, zone_intervention, region_name, department_name, region_code, department_code fields."
+
 frontend:
   - task: "Home Screen with DJ Search"
     implemented: true
@@ -415,3 +430,7 @@ agent_communication:
     message: "New features implemented: 1) DJ visibility strictly enforced - GET /api/djs/{user_id} now requires subscription_status='active', POST /api/contact checks subscription. 2) Dashboard lock screen - GET /api/dj/dashboard returns is_locked=true and lock_message when subscription inactive. 3) Geographic APIs - GET /api/geo/lookup-city, /regions, /departments, /djs-map. 4) Map screen using Leaflet with iframe on web and WebView on native. 5) Geo auto-fill on DJ registration form. Please test the 3 new backend tasks marked as needs_retesting."
   - agent: "testing"
     message: "🎉 ALL 3 NEW BACKEND FEATURES TESTED SUCCESSFULLY! 1) DJ Visibility Filter: ✅ GET /api/djs/{user_id} returns 404 for inactive DJs, 200 for active. POST /api/contact rejects inactive DJs (404), accepts active (200). GET /api/djs and /api/geo/djs-map only show active DJs. 2) DJ Dashboard Lock Screen: ✅ GET /api/dj/dashboard returns is_locked=true with lock_message for inactive DJs, limited stats (zeros). Active DJs show is_locked=false with real stats. 3) Geographic Lookup API: ✅ All endpoints working - city lookup returns department/region, regions endpoint returns 18 French regions, departments endpoint returns 99 departments with IDF filtering working. Backend implementation is complete and fully functional."
+  - agent: "main"
+    message: "CRITICAL FIX - Smart Geographic Search. Fixed 3 bugs: 1) GET /api/djs search now checks ville, zone_intervention, region_name, department_name, region_code, department_code. When user types 'Normandie', it detects it as a region and returns all DJs in Normandie. 2) Fixed admin_create_dj which called non-existent lookup_city() (replaced with get_department_for_city()). 3) Added auto-geocoding on profile update. Fixed existing DJ AS' data (was missing region/department fields). Test focus: Search for 'Normandie' should return DJ AS' who is in La Chapelle-près-Sées (Orne, Normandie). Search for 'Orne' should also return DJ AS'. Search for 'La Chapelle' should also match. Test existing geo API + new search functionality."
+  - agent: "testing"
+    message: "🎯 SMART GEOGRAPHIC SEARCH TESTING COMPLETE - ALL SCENARIOS PASSED! ✅ Comprehensive testing of 8 scenarios completed successfully: 1) Search 'Normandie' → correctly found DJ AS' (region match), 2) Search 'Orne' → correctly found DJ AS' (department match), 3) Search 'La Chapelle' → correctly found DJ AS' (partial city match), 4) Search 'Sarthe' → correctly found DJ AS' (zone_intervention match), 5) Search 'Bretagne' → correctly returned 0 results (negative test), 6) All DJs endpoint → correctly found DJ AS' with active subscription, 7) Geo lookup 'La Chapelle-près-Sées' → correctly returned region=Normandie, department=Orne, 8) Geo lookup 'Sées' → correctly returned valid region data. Geographic APIs fully functional: /geo/regions returns 18 regions including Normandie, /geo/departments returns 99 departments including Orne. Smart search logic working perfectly - matches ville, zone_intervention, region_name, department_name, region_code, department_code fields as expected. Backend implementation is complete and fully functional."

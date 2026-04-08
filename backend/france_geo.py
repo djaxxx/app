@@ -308,3 +308,39 @@ def get_departments_by_region(region_code: str) -> list:
         for dept_code in region["departments"]
         if dept_code in DEPARTMENTS_FRANCE
     ]
+
+def find_region_by_name(name: str) -> dict | None:
+    """Find a region by its name (case-insensitive, accent-insensitive)"""
+    name_norm = _normalize(name)
+    for code, info in REGIONS_FRANCE.items():
+        if _normalize(info["name"]) == name_norm:
+            return {"code": code, "name": info["name"]}
+    # Partial match
+    for code, info in REGIONS_FRANCE.items():
+        if name_norm in _normalize(info["name"]) or _normalize(info["name"]) in name_norm:
+            return {"code": code, "name": info["name"]}
+    return None
+
+def find_department_by_name(name: str) -> dict | None:
+    """Find a department by its name (case-insensitive, accent-insensitive)"""
+    name_norm = _normalize(name)
+    for code, info in DEPARTMENTS_FRANCE.items():
+        if _normalize(info["name"]) == name_norm:
+            region_info = REGIONS_FRANCE.get(info["region"], {})
+            return {
+                "code": code,
+                "name": info["name"],
+                "region_code": info["region"],
+                "region_name": region_info.get("name", "")
+            }
+    # Partial match
+    for code, info in DEPARTMENTS_FRANCE.items():
+        if name_norm in _normalize(info["name"]) or _normalize(info["name"]) in name_norm:
+            region_info = REGIONS_FRANCE.get(info["region"], {})
+            return {
+                "code": code,
+                "name": info["name"],
+                "region_code": info["region"],
+                "region_name": region_info.get("name", "")
+            }
+    return None
