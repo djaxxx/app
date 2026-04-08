@@ -12,6 +12,7 @@ import {
   TextInput,
   Platform,
   KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,6 +33,8 @@ export default function DJProfileScreen() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     client_nom: '',
     client_email: '',
@@ -287,6 +290,53 @@ export default function DJProfileScreen() {
           </View>
         )}
 
+        {/* Photo Gallery */}
+        {dj.galerie_photos && dj.galerie_photos.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Galerie Photos ({dj.galerie_photos.length})</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.galleryScroll}
+            >
+              {dj.galerie_photos.map((photo: string, index: number) => (
+                <TouchableOpacity
+                  key={`photo-${index}`}
+                  onPress={() => {
+                    setSelectedImage(photo);
+                    setShowImageModal(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Image
+                    source={{ uri: photo }}
+                    style={styles.galleryImage}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Video Gallery */}
+        {dj.galerie_videos && dj.galerie_videos.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Vidéos ({dj.galerie_videos.length})</Text>
+            {dj.galerie_videos.map((video: string, index: number) => (
+              <TouchableOpacity
+                key={`video-${index}`}
+                style={styles.videoItem}
+                onPress={() => Linking.openURL(video)}
+              >
+                <Ionicons name="play-circle" size={32} color="#8B5CF6" />
+                <Text style={styles.videoText} numberOfLines={1}>{video}</Text>
+                <Ionicons name="open-outline" size={18} color="#666" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Social Links */}
         {(dj.instagram || dj.tiktok || dj.youtube || dj.google_page || dj.site_internet) && (
           <View style={styles.section}>
@@ -504,6 +554,30 @@ export default function DJProfileScreen() {
 
         <View style={styles.footer} />
       </ScrollView>
+
+      {/* Image Fullscreen Modal */}
+      {showImageModal && selectedImage && (
+        <Modal
+          visible={showImageModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowImageModal(false)}
+        >
+          <View style={styles.imageModalOverlay}>
+            <TouchableOpacity
+              style={styles.imageModalClose}
+              onPress={() => setShowImageModal(false)}
+            >
+              <Ionicons name="close-circle" size={40} color="#fff" />
+            </TouchableOpacity>
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.imageModalFull}
+              resizeMode="contain"
+            />
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -893,5 +967,47 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: 40,
+  },
+  galleryScroll: {
+    paddingRight: 20,
+  },
+  galleryImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: '#1a1a1a',
+  },
+  videoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  videoText: {
+    flex: 1,
+    color: '#ccc',
+    fontSize: 14,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  imageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageModalClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  imageModalFull: {
+    width: width,
+    height: width,
   },
 });
