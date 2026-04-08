@@ -86,14 +86,8 @@ export default function HomeScreen() {
         }
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Image
-              source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/3rs1w5vv_Logo%20vibrant%20de%20DJ%20Match.png' }}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
+        <View style={styles.topBar}>
+          <View style={styles.topBarSpacer} />
           {isAuthenticated ? (
             <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
               <View style={styles.avatarContainer}>
@@ -107,13 +101,20 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Hero Section */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/3rs1w5vv_Logo%20vibrant%20de%20DJ%20Match.png' }}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
+
         <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>Trouvez le DJ parfait</Text>
-          <Text style={styles.heroSubtitle}>
-            pour votre événement
+          <Text style={styles.heroTitle}>
+            Trouvez le DJ parfait{'\n'}
+            <Text style={styles.heroHighlight}>pour votre événement</Text>
           </Text>
-          <Text style={styles.heroDescription}>
+          <Text style={styles.heroSubtitle}>
             DJs professionnels vérifiés pour mariages, anniversaires, soirées privées et entreprises
           </Text>
         </View>
@@ -209,20 +210,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  topBarSpacer: {
+    flex: 1,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  heroSection: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 34,
+  },
+  heroHighlight: {
+    color: '#8B5CF6',
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   logoImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 24,
+    width: 320,
+    height: 320,
+    borderRadius: 32,
   },
   logo: {
     fontSize: 28,
@@ -249,26 +283,6 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: '#fff',
     fontWeight: '600',
-  },
-  heroSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  heroSubtitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#8B5CF6',
-    marginBottom: 12,
-  },
-  heroDescription: {
-    fontSize: 16,
-    color: '#888',
-    lineHeight: 24,
   },
   searchSection: {
     paddingHorizontal: 20,

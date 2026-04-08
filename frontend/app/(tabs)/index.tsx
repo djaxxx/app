@@ -68,20 +68,10 @@ export default function TabHomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />
         }
       >
-        {/* Header with Logo */}
+        {/* Header */}
         <View style={styles.header}>
-          <Image
-            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/3rs1w5vv_Logo%20vibrant%20de%20DJ%20Match.png' }}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.heroTitle}>
-            Trouvez le DJ parfait{'\n'}
-            <Text style={styles.heroHighlight}>pour votre événement</Text>
-          </Text>
-          <Text style={styles.heroSubtitle}>
-            DJs professionnels vérifiés pour mariages, anniversaires, soirées privées et entreprises
-          </Text>
+          <Text style={styles.title}>DJ Match</Text>
+          <Text style={styles.subtitle}>Trouvez votre DJ</Text>
         </View>
 
         {/* Search */}
@@ -153,38 +143,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 16,
-  },
-  logo: {
-    width: 140,
-    height: 140,
-    marginBottom: 16,
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
-    textAlign: 'center',
-    lineHeight: 34,
-  },
-  heroHighlight: {
-    color: '#8B5CF6',
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#8B5CF6',
+    fontWeight: '600',
+    marginTop: 2,
   },
   searchSection: {
     paddingHorizontal: 20,
