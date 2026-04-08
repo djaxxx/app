@@ -50,10 +50,27 @@ export default function ContactDJScreen() {
     loadData();
   }, [djId]);
 
+  const showMessage = (title: string, message: string, onOk?: () => void) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n${message}`);
+      if (onOk) onOk();
+    } else {
+      Alert.alert(title, message, onOk ? [{ text: 'OK', onPress: onOk }] : undefined);
+    }
+  };
+
   const handleSubmit = async () => {
     // Validation
-    if (!formData.client_nom || !formData.client_email || !formData.date_evenement || !formData.message) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+    if (!formData.client_nom.trim()) {
+      showMessage('Champ requis', 'Veuillez entrer votre nom');
+      return;
+    }
+    if (!formData.client_email.trim() || !formData.client_email.includes('@')) {
+      showMessage('Email invalide', 'Veuillez entrer un email valide');
+      return;
+    }
+    if (!formData.message.trim()) {
+      showMessage('Champ requis', 'Veuillez écrire un message');
       return;
     }
 
@@ -63,13 +80,13 @@ export default function ContactDJScreen() {
         dj_user_id: djId!,
         ...formData,
       });
-      Alert.alert(
-        'Demande envoyée',
+      showMessage(
+        'Demande envoyée !',
         'Votre demande a été envoyée au DJ. Vous recevrez une réponse rapidement.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        () => router.back()
       );
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Erreur lors de l\'envoi de la demande');
+      showMessage('Erreur', error.message || 'Erreur lors de l\'envoi de la demande');
     } finally {
       setLoading(false);
     }

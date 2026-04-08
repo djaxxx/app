@@ -180,10 +180,10 @@ class ContactRequest(BaseModel):
     dj_user_id: str
     client_nom: str
     client_email: EmailStr
-    client_telephone: str
-    date_evenement: str
-    lieu_evenement: str
-    type_evenement: str
+    client_telephone: Optional[str] = ""
+    date_evenement: Optional[str] = ""
+    lieu_evenement: Optional[str] = ""
+    type_evenement: Optional[str] = ""
     message: str
 
 class ContactRequestDB(ContactRequest):
