@@ -5,6 +5,7 @@ export interface User {
   picture?: string;
   has_dj_profile?: boolean;
   is_dj?: boolean;
+  is_admin?: boolean;
   dj_profile?: DJProfile;
 }
 

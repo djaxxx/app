@@ -234,6 +234,30 @@ class ApiService {
       currency: string;
     }>(`/api/subscription/status/${sessionId}`);
   }
+
+  // Admin APIs
+  async adminListDJs() {
+    return this.request<{ djs: any[]; total: number }>('/api/admin/djs');
+  }
+
+  async adminCreateDJ(djData: any) {
+    return this.request<{ message: string; dj: any }>('/api/admin/create-dj', {
+      method: 'POST',
+      body: JSON.stringify(djData),
+    });
+  }
+
+  async adminToggleSubscription(userId: string) {
+    return this.request<{ message: string; subscription_status: string }>(`/api/admin/djs/${userId}/toggle-subscription`, {
+      method: 'PUT',
+    });
+  }
+
+  async adminDeleteDJ(userId: string) {
+    return this.request<{ message: string }>(`/api/admin/djs/${userId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiService();

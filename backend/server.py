@@ -318,6 +318,14 @@ async def require_dj(request: Request) -> dict:
         raise HTTPException(status_code=403, detail="Profil DJ requis")
     return {**user, "dj_profile": dj_profile}
 
+async def require_admin(request: Request) -> dict:
+    """Require admin access"""
+    user = await require_auth(request)
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    if user.get("email") != admin_email:
+        raise HTTPException(status_code=403, detail="Accès administrateur requis")
+    return user
+
 # ===================
 # API ROUTES
 # ===================
@@ -551,22 +559,6 @@ async def create_session(request: Request, response: Response):
     except Exception as e:
         logger.error(f"Auth error: {str(e)}")
         raise HTTPException(status_code=500, detail="Erreur d'authentification")
-
-@api_router.get("/auth/me")
-async def get_me(request: Request):
-    """Get current user info"""
-    user = await get_current_user(request)
-    if not user:
-        raise HTTPException(status_code=401, detail="Non authentifié")
-    
-    dj_profile = await db.dj_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
-    
-    return {
-        **user,
-        "has_dj_profile": dj_profile is not None,
-        "is_dj": dj_profile is not None,
-        "dj_profile": dj_profile
-    }
 
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response):
@@ -1092,6 +1084,170 @@ async def stripe_webhook(request: Request):
     except Exception as e:
         logger.error(f"Webhook error: {str(e)}")
         return {"received": True}  # Always return 200 to Stripe
+
+# ===================
+# ADMIN ENDPOINTS
+# ===================
+
+@api_router.get("/auth/me")
+async def get_current_user_info(request: Request):
+    """Get current user info including admin status"""
+    user = await get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    is_admin = user.get("email") == admin_email
+    
+    dj_profile = await db.dj_profiles.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    
+    return {
+        "user_id": user.get("user_id"),
+        "email": user.get("email"),
+        "name": user.get("name"),
+        "picture": user.get("picture"),
+        "is_admin": is_admin,
+        "has_dj_profile": dj_profile is not None,
+        "is_dj": dj_profile is not None,
+        "dj_profile": dj_profile,
+        "subscription_status": dj_profile.get("subscription_status") if dj_profile else None,
+    }
+
+@api_router.get("/admin/djs")
+async def admin_list_djs(request: Request):
+    """Admin: List ALL DJs (including inactive/unpaid)"""
+    await require_admin(request)
+    
+    djs = await db.dj_profiles.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return {"djs": djs, "total": len(djs)}
+
+@api_router.post("/admin/create-dj")
+async def admin_create_dj(request: Request):
+    """Admin: Create a DJ profile with free active subscription"""
+    await require_admin(request)
+    body = await request.json()
+    
+    # Generate a unique user_id for this DJ
+    user_id = f"admin_dj_{uuid.uuid4().hex[:12]}"
+    
+    # Create user entry
+    email = body.get("email", f"{user_id}@djmatch.fr")
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        user_id = existing["user_id"]
+    else:
+        await db.users.insert_one({
+            "user_id": user_id,
+            "email": email,
+            "name": body.get("nom_de_scene", "DJ"),
+            "picture": "",
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        })
+    
+    # Check if DJ profile already exists
+    existing_dj = await db.dj_profiles.find_one({"user_id": user_id})
+    if existing_dj:
+        raise HTTPException(status_code=400, detail="Ce DJ existe déjà")
+    
+    # Auto-resolve geo
+    city = body.get("ville", "")
+    geo_data = {}
+    if city:
+        from france_geo import lookup_city
+        geo_result = lookup_city(city)
+        if "department_name" in geo_result:
+            geo_data = geo_result
+    
+    # Create DJ profile with active subscription (FREE)
+    now = datetime.now(timezone.utc)
+    dj_data = {
+        "user_id": user_id,
+        "email": email,
+        "nom": body.get("nom", ""),
+        "prenom": body.get("prenom", ""),
+        "nom_de_scene": body.get("nom_de_scene", ""),
+        "telephone": body.get("telephone", ""),
+        "siret": body.get("siret", ""),
+        "siret_verified": True,  # Admin bypasses SIRET check
+        "ville": city,
+        "department_code": geo_data.get("department_code", body.get("department_code", "")),
+        "department_name": geo_data.get("department_name", body.get("department_name", "")),
+        "region_code": geo_data.get("region_code", body.get("region_code", "")),
+        "region_name": geo_data.get("region_name", body.get("region_name", "")),
+        "latitude": body.get("latitude"),
+        "longitude": body.get("longitude"),
+        "description": body.get("description", ""),
+        "annees_experience": body.get("annees_experience", 0),
+        "types_evenements": body.get("types_evenements", []),
+        "materiel_son": body.get("materiel_son", ""),
+        "materiel_lumiere": body.get("materiel_lumiere", ""),
+        "tarif_indicatif": body.get("tarif_indicatif", "800"),
+        "instagram": body.get("instagram", ""),
+        "tiktok": body.get("tiktok", ""),
+        "youtube": body.get("youtube", ""),
+        "google_page": body.get("google_page", ""),
+        "site_internet": body.get("site_internet", ""),
+        "photo_profil": body.get("photo_profil", ""),
+        "galerie_photos": body.get("galerie_photos", []),
+        "subscription_status": "active",
+        "subscription_plan": "admin_free",
+        "subscription_end_date": (now + timedelta(days=36500)).isoformat(),  # ~100 years
+        "is_active": True,
+        "is_verified": True,
+        "badge_verifie": True,
+        "nombre_vues": 0,
+        "nombre_avis": 0,
+        "note_moyenne": 0,
+        "created_at": now,
+        "updated_at": now,
+        "added_by_admin": True,
+    }
+    
+    await db.dj_profiles.insert_one(dj_data)
+    del dj_data["_id"]
+    
+    return {"message": "DJ créé avec succès (abonnement gratuit activé)", "dj": dj_data}
+
+@api_router.put("/admin/djs/{user_id}/toggle-subscription")
+async def admin_toggle_subscription(user_id: str, request: Request):
+    """Admin: Toggle DJ subscription status (activate/deactivate for free)"""
+    await require_admin(request)
+    
+    dj = await db.dj_profiles.find_one({"user_id": user_id})
+    if not dj:
+        raise HTTPException(status_code=404, detail="DJ non trouvé")
+    
+    current_status = dj.get("subscription_status", "inactive")
+    new_status = "inactive" if current_status == "active" else "active"
+    
+    update_data = {
+        "subscription_status": new_status,
+        "is_active": new_status == "active",
+        "updated_at": datetime.now(timezone.utc),
+    }
+    
+    if new_status == "active":
+        update_data["subscription_plan"] = "admin_free"
+        update_data["subscription_end_date"] = (datetime.now(timezone.utc) + timedelta(days=36500)).isoformat()
+    
+    await db.dj_profiles.update_one({"user_id": user_id}, {"$set": update_data})
+    
+    return {
+        "message": f"DJ {'activé' if new_status == 'active' else 'désactivé'} avec succès",
+        "subscription_status": new_status,
+    }
+
+@api_router.delete("/admin/djs/{user_id}")
+async def admin_delete_dj(user_id: str, request: Request):
+    """Admin: Delete a DJ profile"""
+    await require_admin(request)
+    
+    result = await db.dj_profiles.delete_one({"user_id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="DJ non trouvé")
+    
+    return {"message": "DJ supprimé avec succès"}
 
 # ===================
 # EVENT TYPES

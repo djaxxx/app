@@ -204,6 +204,17 @@ export default function ProfileScreen() {
             <Text style={[styles.actionText, { color: '#EF4444' }]}>Déconnexion</Text>
             <Ionicons name="chevron-forward" size={24} color="#666" />
           </TouchableOpacity>
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.actionItem, styles.adminAction]}
+              onPress={() => router.push('/admin')}
+            >
+              <Ionicons name="shield-checkmark" size={24} color="#F59E0B" />
+              <Text style={[styles.actionText, { color: '#F59E0B' }]}>Panel Administrateur</Text>
+              <Ionicons name="chevron-forward" size={24} color="#F59E0B" />
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.footer}>
@@ -365,6 +376,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginLeft: 12,
+  },
+  adminAction: {
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+    marginTop: 12,
   },
   notAuthContainer: {
     flex: 1,
