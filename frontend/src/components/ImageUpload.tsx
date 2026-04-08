@@ -7,6 +7,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Platform,
+  Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,12 +29,18 @@ export function ImageUpload({
   circular = true,
 }: ImageUploadProps) {
   const [loading, setLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const pickImage = async () => {
+    setShowMenu(false);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Nous avons besoin de votre permission pour accéder à vos photos.');
+        if (Platform.OS === 'web') {
+          window.alert('Permission requise pour accéder à vos photos.');
+        } else {
+          Alert.alert('Permission requise', 'Nous avons besoin de votre permission pour accéder à vos photos.');
+        }
         return;
       }
 
@@ -45,23 +53,36 @@ export function ImageUpload({
         base64: true,
       });
 
-      if (!result.canceled && result.assets[0].base64) {
-        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-        onImageChange(base64Image);
+      if (!result.canceled && result.assets[0]) {
+        if (result.assets[0].base64) {
+          const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+          onImageChange(base64Image);
+        } else if (result.assets[0].uri) {
+          onImageChange(result.assets[0].uri);
+        }
       }
     } catch (error) {
       console.error('Image picker error:', error);
-      Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+      if (Platform.OS === 'web') {
+        window.alert('Impossible de sélectionner l\'image');
+      } else {
+        Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const takePhoto = async () => {
+    setShowMenu(false);
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Nous avons besoin de votre permission pour utiliser la caméra.');
+        if (Platform.OS === 'web') {
+          window.alert('Permission requise pour utiliser la caméra.');
+        } else {
+          Alert.alert('Permission requise', 'Nous avons besoin de votre permission pour utiliser la caméra.');
+        }
         return;
       }
 
@@ -73,29 +94,38 @@ export function ImageUpload({
         base64: true,
       });
 
-      if (!result.canceled && result.assets[0].base64) {
-        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-        onImageChange(base64Image);
+      if (!result.canceled && result.assets[0]) {
+        if (result.assets[0].base64) {
+          const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+          onImageChange(base64Image);
+        } else if (result.assets[0].uri) {
+          onImageChange(result.assets[0].uri);
+        }
       }
     } catch (error) {
       console.error('Camera error:', error);
-      Alert.alert('Erreur', 'Impossible de prendre la photo');
+      if (Platform.OS === 'web') {
+        window.alert('Impossible de prendre la photo');
+      } else {
+        Alert.alert('Erreur', 'Impossible de prendre la photo');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const showOptions = () => {
-    Alert.alert(
-      label,
-      'Choisissez une option',
-      [
-        { text: 'Prendre une photo', onPress: takePhoto },
-        { text: 'Choisir depuis la galerie', onPress: pickImage },
-        ...(image ? [{ text: 'Supprimer', onPress: () => onImageChange(null), style: 'destructive' as const }] : []),
-        { text: 'Annuler', style: 'cancel' as const },
-      ]
-    );
+  const handlePress = () => {
+    if (Platform.OS === 'web') {
+      // On web, directly open file picker
+      pickImage();
+    } else {
+      setShowMenu(true);
+    }
+  };
+
+  const removeImage = () => {
+    setShowMenu(false);
+    onImageChange(null);
   };
 
   return (
@@ -107,7 +137,7 @@ export function ImageUpload({
           { width: size, height: size },
           circular && { borderRadius: size / 2 },
         ]}
-        onPress={showOptions}
+        onPress={handlePress}
         disabled={loading}
       >
         {loading ? (
@@ -133,6 +163,58 @@ export function ImageUpload({
           </View>
         )}
       </TouchableOpacity>
+
+      {/* Web: show remove button below image */}
+      {Platform.OS === 'web' && image && (
+        <TouchableOpacity style={styles.webRemoveBtn} onPress={removeImage}>
+          <Ionicons name="trash-outline" size={16} color="#EF4444" />
+          <Text style={styles.webRemoveText}>Supprimer</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Native: Action Sheet Modal */}
+      {Platform.OS !== 'web' && (
+        <Modal
+          visible={showMenu}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowMenu(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowMenu(false)}
+          >
+            <View style={styles.menuContainer}>
+              <Text style={styles.menuTitle}>{label}</Text>
+
+              <TouchableOpacity style={styles.menuOption} onPress={takePhoto}>
+                <Ionicons name="camera" size={22} color="#8B5CF6" />
+                <Text style={styles.menuOptionText}>Prendre une photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.menuOption} onPress={pickImage}>
+                <Ionicons name="images" size={22} color="#8B5CF6" />
+                <Text style={styles.menuOptionText}>Choisir depuis la galerie</Text>
+              </TouchableOpacity>
+
+              {image && (
+                <TouchableOpacity style={styles.menuOption} onPress={removeImage}>
+                  <Ionicons name="trash" size={22} color="#EF4444" />
+                  <Text style={[styles.menuOptionText, { color: '#EF4444' }]}>Supprimer</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[styles.menuOption, styles.menuCancel]}
+                onPress={() => setShowMenu(false)}
+              >
+                <Text style={styles.menuCancelText}>Annuler</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -154,14 +236,22 @@ export function GalleryUpload({
 
   const addImage = async () => {
     if (images.length >= maxImages) {
-      Alert.alert('Limite atteinte', `Vous pouvez ajouter maximum ${maxImages} photos.`);
+      if (Platform.OS === 'web') {
+        window.alert(`Vous pouvez ajouter maximum ${maxImages} photos.`);
+      } else {
+        Alert.alert('Limite atteinte', `Vous pouvez ajouter maximum ${maxImages} photos.`);
+      }
       return;
     }
 
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Nous avons besoin de votre permission pour accéder à vos photos.');
+        if (Platform.OS === 'web') {
+          window.alert('Permission requise pour accéder à vos photos.');
+        } else {
+          Alert.alert('Permission requise', 'Nous avons besoin de votre permission pour accéder à vos photos.');
+        }
         return;
       }
 
@@ -174,35 +264,47 @@ export function GalleryUpload({
         base64: true,
       });
 
-      if (!result.canceled && result.assets[0].base64) {
-        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
-        onImagesChange([...images, base64Image]);
+      if (!result.canceled && result.assets[0]) {
+        if (result.assets[0].base64) {
+          const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+          onImagesChange([...images, base64Image]);
+        } else if (result.assets[0].uri) {
+          onImagesChange([...images, result.assets[0].uri]);
+        }
       }
     } catch (error) {
       console.error('Image picker error:', error);
-      Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+      if (Platform.OS === 'web') {
+        window.alert('Impossible de sélectionner l\'image');
+      } else {
+        Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const removeImage = (index: number) => {
-    Alert.alert(
-      'Supprimer la photo',
-      'Voulez-vous vraiment supprimer cette photo ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: () => {
-            const newImages = [...images];
-            newImages.splice(index, 1);
-            onImagesChange(newImages);
-          },
-        },
-      ]
-    );
+    const doRemove = () => {
+      const newImages = [...images];
+      newImages.splice(index, 1);
+      onImagesChange(newImages);
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Supprimer cette photo ?')) {
+        doRemove();
+      }
+    } else {
+      Alert.alert(
+        'Supprimer la photo',
+        'Voulez-vous vraiment supprimer cette photo ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Supprimer', style: 'destructive', onPress: doRemove },
+        ]
+      );
+    }
   };
 
   return (
@@ -328,5 +430,62 @@ const styles = StyleSheet.create({
     color: '#8B5CF6',
     fontSize: 12,
     marginTop: 4,
+  },
+  webRemoveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 8,
+  },
+  webRemoveText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  menuContainer: {
+    backgroundColor: '#1a1a1a',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  menuTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  menuOptionText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 12,
+  },
+  menuCancel: {
+    backgroundColor: '#222',
+    marginTop: 8,
+    justifyContent: 'center',
+  },
+  menuCancelText: {
+    color: '#888',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
