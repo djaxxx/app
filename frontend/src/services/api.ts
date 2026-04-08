@@ -188,6 +188,12 @@ class ApiService {
     });
   }
 
+  async deleteContact(requestId: string) {
+    return this.request<{ message: string }>(`/api/dj/contacts/${requestId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Reviews
   async submitReview(data: {
     dj_user_id: string;

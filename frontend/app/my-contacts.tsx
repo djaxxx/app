@@ -72,6 +72,33 @@ export default function MyContactsScreen() {
     }
   };
 
+  const deleteContact = async (requestId: string) => {
+    const doDelete = async () => {
+      try {
+        await api.deleteContact(requestId);
+        setContacts(prev => prev.filter(c => c.request_id !== requestId));
+      } catch (error) {
+        console.error('Error deleting contact:', error);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Supprimer cette demande ?')) {
+        await doDelete();
+      }
+    } else {
+      const { Alert } = require('react-native');
+      Alert.alert(
+        'Supprimer',
+        'Supprimer cette demande ?',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Supprimer', style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
+  };
+
   const handleCall = (phone: string) => {
     Linking.openURL(`tel:${phone}`);
   };
@@ -96,6 +123,16 @@ export default function MyContactsScreen() {
   };
 
   const unreadCount = contacts.filter(c => !c.read).length;
+
+  const markAllAsRead = async () => {
+    const unread = contacts.filter(c => !c.read);
+    try {
+      await Promise.all(unread.map(c => api.markContactRead(c.request_id)));
+      setContacts(prev => prev.map(c => ({ ...c, read: true })));
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
+  };
 
   const filters = [
     { key: null, label: 'Toutes' },
@@ -125,19 +162,27 @@ export default function MyContactsScreen() {
         )}
       </View>
 
-      {/* Filters */}
+      {/* Filters + Mark all as read */}
       <View style={styles.filtersRow}>
-        {filters.map(f => (
-          <TouchableOpacity
-            key={f.key || 'all'}
-            style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
-            onPress={() => setFilter(f.key)}
-          >
-            <Text style={[styles.filterChipText, filter === f.key && styles.filterChipTextActive]}>
-              {f.label}
-            </Text>
+        <View style={styles.filtersLeft}>
+          {filters.map(f => (
+            <TouchableOpacity
+              key={f.key || 'all'}
+              style={[styles.filterChip, filter === f.key && styles.filterChipActive]}
+              onPress={() => setFilter(f.key)}
+            >
+              <Text style={[styles.filterChipText, filter === f.key && styles.filterChipTextActive]}>
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {unreadCount > 0 && (
+          <TouchableOpacity style={styles.markAllBtn} onPress={markAllAsRead}>
+            <Ionicons name="checkmark-done" size={16} color="#8B5CF6" />
+            <Text style={styles.markAllBtnText}>Tout lu</Text>
           </TouchableOpacity>
-        ))}
+        )}
       </View>
 
       <ScrollView
@@ -230,6 +275,15 @@ export default function MyContactsScreen() {
                   <Ionicons name="mail" size={18} color="#3B82F6" />
                   <Text style={styles.actionBtnText}>Email</Text>
                 </TouchableOpacity>
+                {contact.read && (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => deleteContact(contact.request_id)}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    <Text style={styles.deleteBtnText}>Supprimer</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </TouchableOpacity>
           ))
@@ -282,6 +336,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  filtersLeft: {
+    flexDirection: 'row',
   },
   filterChip: {
     backgroundColor: '#1a1a1a',
@@ -429,5 +488,33 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     marginLeft: 6,
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 'auto',
+  },
+  deleteBtnText: {
+    color: '#EF4444',
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  markAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+  },
+  markAllBtnText: {
+    color: '#8B5CF6',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
   },
 });

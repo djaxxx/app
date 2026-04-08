@@ -912,6 +912,26 @@ async def mark_contact_read(request_id: str, request: Request):
     
     return {"message": "Demande marquée comme lue"}
 
+@api_router.delete("/dj/contacts/{request_id}")
+async def delete_contact_request(request_id: str, request: Request):
+    """Delete a contact request"""
+    user_data = await require_dj(request)
+    
+    result = await db.contact_requests.delete_one(
+        {"request_id": request_id, "dj_user_id": user_data["user_id"]}
+    )
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Demande non trouvée")
+    
+    # Decrement request count
+    await db.dj_profiles.update_one(
+        {"user_id": user_data["user_id"], "nombre_demandes": {"$gt": 0}},
+        {"$inc": {"nombre_demandes": -1}}
+    )
+    
+    return {"message": "Demande supprimée"}
+
 # ===================
 # REVIEWS
 # ===================

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { api } from '../../src/services/api';
@@ -41,9 +42,12 @@ export default function DashboardScreen() {
     }
   };
 
-  useEffect(() => {
-    loadDashboard();
-  }, [isAuthenticated, user]);
+  // Refresh dashboard every time the screen is focused (e.g. coming back from contacts)
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [isAuthenticated, user])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
