@@ -220,9 +220,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 16,
+    width: 200,
+    height: 200,
+    borderRadius: 24,
   },
   logo: {
     fontSize: 28,

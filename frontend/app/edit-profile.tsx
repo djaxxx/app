@@ -38,6 +38,8 @@ export default function EditDJProfileScreen() {
     instagram: '',
     tiktok: '',
     youtube: '',
+    google_page: '',
+    site_internet: '',
     photo_profil: '',
     galerie_photos: [] as string[],
   });
@@ -61,6 +63,8 @@ export default function EditDJProfileScreen() {
           instagram: profileData.instagram || '',
           tiktok: profileData.tiktok || '',
           youtube: profileData.youtube || '',
+          google_page: profileData.google_page || '',
+          site_internet: profileData.site_internet || '',
           photo_profil: profileData.photo_profil || '',
           galerie_photos: profileData.galerie_photos || [],
         });
@@ -309,6 +313,34 @@ export default function EditDJProfileScreen() {
                 placeholder="URL ou nom de chaîne"
                 placeholderTextColor="#666"
                 autoCapitalize="none"
+              />
+            </View>
+
+            <Text style={styles.sectionTitle}>Présence en ligne</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Page Google (Google My Business)</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.google_page}
+                onChangeText={(text) => setFormData({ ...formData, google_page: text })}
+                placeholder="https://g.page/votre-page ou lien Google Maps"
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Site Internet</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.site_internet}
+                onChangeText={(text) => setFormData({ ...formData, site_internet: text })}
+                placeholder="https://www.votre-site.fr"
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+                keyboardType="url"
               />
             </View>
 

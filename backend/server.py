@@ -102,6 +102,8 @@ class DJProfileCreate(BaseModel):
     instagram: Optional[str] = ""
     tiktok: Optional[str] = ""
     youtube: Optional[str] = ""
+    google_page: Optional[str] = ""
+    site_internet: Optional[str] = ""
     photo_profil: Optional[str] = ""
     galerie_photos: List[str] = []
     galerie_videos: List[str] = []
@@ -129,6 +131,8 @@ class DJProfileUpdate(BaseModel):
     instagram: Optional[str] = None
     tiktok: Optional[str] = None
     youtube: Optional[str] = None
+    google_page: Optional[str] = None
+    site_internet: Optional[str] = None
     photo_profil: Optional[str] = None
     galerie_photos: Optional[List[str]] = None
     galerie_videos: Optional[List[str]] = None
@@ -155,6 +159,8 @@ class DJProfile(BaseModel):
     instagram: str = ""
     tiktok: str = ""
     youtube: str = ""
+    google_page: str = ""
+    site_internet: str = ""
     photo_profil: str = ""
     galerie_photos: List[str] = []
     galerie_videos: List[str] = []

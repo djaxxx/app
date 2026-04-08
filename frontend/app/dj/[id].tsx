@@ -243,9 +243,9 @@ export default function DJProfileScreen() {
         )}
 
         {/* Social Links */}
-        {(dj.instagram || dj.tiktok || dj.youtube) && (
+        {(dj.instagram || dj.tiktok || dj.youtube || dj.google_page || dj.site_internet) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Réseaux sociaux</Text>
+            <Text style={styles.sectionTitle}>Réseaux sociaux & Liens</Text>
             <View style={styles.socialLinks}>
               {dj.instagram && (
                 <TouchableOpacity
@@ -271,7 +271,43 @@ export default function DJProfileScreen() {
                   <Ionicons name="logo-youtube" size={28} color="#FF0000" />
                 </TouchableOpacity>
               )}
+              {dj.google_page && (
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  onPress={() => openSocialLink(dj.google_page, 'google')}
+                >
+                  <Ionicons name="logo-google" size={28} color="#4285F4" />
+                </TouchableOpacity>
+              )}
+              {dj.site_internet && (
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  onPress={() => openSocialLink(dj.site_internet, 'website')}
+                >
+                  <Ionicons name="globe-outline" size={28} color="#8B5CF6" />
+                </TouchableOpacity>
+              )}
             </View>
+            {dj.google_page && (
+              <TouchableOpacity
+                style={styles.linkRow}
+                onPress={() => openSocialLink(dj.google_page, 'google')}
+              >
+                <Ionicons name="logo-google" size={18} color="#4285F4" />
+                <Text style={styles.linkText} numberOfLines={1}>Page Google</Text>
+                <Ionicons name="open-outline" size={16} color="#666" />
+              </TouchableOpacity>
+            )}
+            {dj.site_internet && (
+              <TouchableOpacity
+                style={styles.linkRow}
+                onPress={() => openSocialLink(dj.site_internet, 'website')}
+              >
+                <Ionicons name="globe-outline" size={18} color="#8B5CF6" />
+                <Text style={styles.linkText} numberOfLines={1}>{dj.site_internet}</Text>
+                <Ionicons name="open-outline" size={16} color="#666" />
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -532,6 +568,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
+  },
+  linkText: {
+    flex: 1,
+    color: '#ccc',
+    fontSize: 14,
+    marginLeft: 10,
   },
   reviewCard: {
     backgroundColor: '#1a1a1a',
