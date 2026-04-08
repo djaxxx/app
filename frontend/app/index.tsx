@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -32,33 +32,60 @@ export default function HomeScreen() {
   const [selectedEventType, setSelectedEventType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const requestIdRef = useRef(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (query?: string, eventType?: string | null) => {
+    const currentRequestId = ++requestIdRef.current;
     try {
+      const effectiveQuery = query !== undefined ? query : searchQuery;
+      const effectiveEventType = eventType !== undefined ? eventType : selectedEventType;
       const [djsResult, typesResult] = await Promise.all([
         api.searchDJs({
-          ville: searchQuery || undefined,
-          type_evenement: selectedEventType || undefined,
+          ville: effectiveQuery || undefined,
+          type_evenement: effectiveEventType || undefined,
         }),
         api.getEventTypes(),
       ]);
-      setDjs(djsResult.djs);
-      setEventTypes(typesResult);
+      // Only update state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setDjs(djsResult.djs);
+        setEventTypes(typesResult);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
+  // Initial load
   useEffect(() => {
-    loadData();
+    loadData('', null);
+  }, []);
+
+  // Debounced search when query changes
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    setLoading(true);
+    debounceTimerRef.current = setTimeout(() => {
+      loadData(searchQuery, selectedEventType);
+    }, 500);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [searchQuery, selectedEventType]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadData();
+    loadData(searchQuery, selectedEventType);
   };
 
   const handleLogin = () => {

@@ -760,7 +760,7 @@ async def list_djs(
     """List active DJs with filters"""
     query = {"is_active": True, "subscription_status": "active"}
     
-    if ville:
+    if ville and len(ville.strip()) >= 2:
         # Smart search: check city name, zone_intervention, region and department
         search_conditions = [
             {"ville": {"$regex": ville, "$options": "i"}},
@@ -769,30 +769,31 @@ async def list_djs(
             {"department_name": {"$regex": ville, "$options": "i"}},
         ]
         
-        # Check if search term is a known region name
-        region_match = find_region_by_name(ville)
-        if region_match:
-            search_conditions.append({"region_code": region_match["code"]})
-            search_conditions.append({"region_name": region_match["name"]})
-        
-        # Check if search term is a known department name
-        dept_match = find_department_by_name(ville)
-        if dept_match:
-            search_conditions.append({"department_code": dept_match["code"]})
-            search_conditions.append({"department_name": dept_match["name"]})
-        
-        # Also try to resolve the search term as a city via geo API
-        geo_info = get_department_for_city(ville)
-        if geo_info:
-            # If the search term resolves to a city, also include DJs in the same department/region
-            if geo_info.get("region_name"):
-                search_conditions.append({"region_name": geo_info["region_name"]})
-            if geo_info.get("department_name"):
-                search_conditions.append({"department_name": geo_info["department_name"]})
-            if geo_info.get("region_code"):
-                search_conditions.append({"region_code": geo_info["region_code"]})
-            if geo_info.get("department_code"):
-                search_conditions.append({"department_code": geo_info["department_code"]})
+        # Check if search term is a known region name (only for terms >= 3 chars)
+        if len(ville.strip()) >= 3:
+            region_match = find_region_by_name(ville)
+            if region_match:
+                search_conditions.append({"region_code": region_match["code"]})
+                search_conditions.append({"region_name": region_match["name"]})
+            
+            # Check if search term is a known department name
+            dept_match = find_department_by_name(ville)
+            if dept_match:
+                search_conditions.append({"department_code": dept_match["code"]})
+                search_conditions.append({"department_name": dept_match["name"]})
+            
+            # Also try to resolve the search term as a city via geo API
+            geo_info = get_department_for_city(ville)
+            if geo_info:
+                # If the search term resolves to a city, also include DJs in the same department/region
+                if geo_info.get("region_name"):
+                    search_conditions.append({"region_name": geo_info["region_name"]})
+                if geo_info.get("department_name"):
+                    search_conditions.append({"department_name": geo_info["department_name"]})
+                if geo_info.get("region_code"):
+                    search_conditions.append({"region_code": geo_info["region_code"]})
+                if geo_info.get("department_code"):
+                    search_conditions.append({"department_code": geo_info["department_code"]})
         
         query["$or"] = search_conditions
     
