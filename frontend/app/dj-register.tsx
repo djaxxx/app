@@ -28,6 +28,13 @@ export default function DJRegisterScreen() {
   const [siretVerifying, setSiretVerifying] = useState(false);
   const [siretResult, setSiretResult] = useState<any>(null);
   const [step, setStep] = useState(1);
+  const [geoInfo, setGeoInfo] = useState<{
+    department_name?: string;
+    region_name?: string;
+    department_code?: string;
+    region_code?: string;
+  } | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     nom: '',
@@ -61,6 +68,37 @@ export default function DJRegisterScreen() {
     };
     loadEventTypes();
   }, []);
+
+  // Auto-lookup city for geo info
+  useEffect(() => {
+    const lookupTimeout = setTimeout(async () => {
+      const city = formData.ville.trim();
+      if (city.length >= 3) {
+        setGeoLoading(true);
+        try {
+          const result = await api.lookupCity(city);
+          if ('department_name' in result) {
+            setGeoInfo({
+              department_name: result.department_name,
+              region_name: result.region_name,
+              department_code: result.department_code,
+              region_code: result.region_code,
+            });
+          } else {
+            setGeoInfo(null);
+          }
+        } catch {
+          setGeoInfo(null);
+        } finally {
+          setGeoLoading(false);
+        }
+      } else {
+        setGeoInfo(null);
+      }
+    }, 500); // debounce 500ms
+
+    return () => clearTimeout(lookupTimeout);
+  }, [formData.ville]);
 
   const handleLogin = () => {
     const redirectUrl = typeof window !== 'undefined'
@@ -236,9 +274,28 @@ export default function DJRegisterScreen() {
                   style={styles.input}
                   value={formData.ville}
                   onChangeText={(text) => setFormData({ ...formData, ville: text })}
-                  placeholder="Votre ville"
+                  placeholder="Votre ville (ex: Paris, Lyon, Marseille...)"
                   placeholderTextColor="#666"
                 />
+                {geoLoading && (
+                  <View style={styles.geoLoading}>
+                    <ActivityIndicator size="small" color="#8B5CF6" />
+                    <Text style={styles.geoLoadingText}>Recherche...</Text>
+                  </View>
+                )}
+                {geoInfo && (
+                  <View style={styles.geoInfoContainer}>
+                    <Ionicons name="location" size={16} color="#10B981" />
+                    <Text style={styles.geoInfoText}>
+                      {geoInfo.department_name} — {geoInfo.region_name}
+                    </Text>
+                  </View>
+                )}
+                {formData.ville.length >= 3 && !geoLoading && !geoInfo && (
+                  <Text style={styles.geoNotFound}>
+                    Ville non reconnue — la géolocalisation sera ajoutée manuellement
+                  </Text>
+                )}
               </View>
 
               <View style={styles.inputGroup}>
@@ -679,5 +736,36 @@ const styles = StyleSheet.create({
   loginButton: {
     marginTop: 32,
     width: '100%',
+  },
+  geoLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingHorizontal: 4,
+  },
+  geoLoadingText: {
+    color: '#888',
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  geoInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  geoInfoText: {
+    color: '#10B981',
+    fontSize: 13,
+    marginLeft: 8,
+    fontWeight: '600',
+  },
+  geoNotFound: {
+    color: '#F59E0B',
+    fontSize: 12,
+    marginTop: 6,
+    paddingHorizontal: 4,
   },
 });

@@ -252,6 +252,51 @@ backend:
         agent: "testing"
         comment: "✅ Stripe subscription API now working with valid test API key 'sk_test_9YgiwNBcdgZzK21V7wYDtmBO002IlPfNx0'. Successfully tested: POST /api/subscription/create-checkout creates valid Stripe checkout sessions (5€ monthly subscription), payment transactions recorded in database, GET /api/subscription/status handles session queries, POST /api/webhook/stripe processes webhooks correctly. All endpoints functional."
 
+  - task: "DJ Visibility Filter (Active Subscription Only)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated GET /api/djs/{user_id} to require subscription_status='active'. Updated POST /api/contact to only allow contacting active DJs. Dashboard returns is_locked=true when subscription inactive."
+      - working: true
+        agent: "testing"
+        comment: "✅ DJ Visibility Filter fully working - GET /api/djs/{user_id} correctly returns 404 for inactive DJs and 200 for active DJs. POST /api/contact correctly rejects requests to inactive DJs (404) and accepts requests to active DJs (200). GET /api/djs only returns DJs with subscription_status='active'. GET /api/geo/djs-map correctly excludes inactive DJs from map display."
+
+  - task: "DJ Dashboard Lock Screen (Backend)"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/dj/dashboard now returns is_locked and lock_message when subscription_status != 'active'. Limited stats returned for locked profiles."
+      - working: true
+        agent: "testing"
+        comment: "✅ DJ Dashboard Lock Screen working perfectly - GET /api/dj/dashboard correctly returns is_locked=true for inactive DJs with appropriate lock_message mentioning subscription. Limited stats (all zeros) returned for locked profiles. Active DJs correctly show is_locked=false with real stats displayed."
+
+  - task: "Geographic Lookup API"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/geo/lookup-city, /api/geo/regions, /api/geo/departments, /api/geo/djs-map all implemented"
+      - working: true
+        agent: "testing"
+        comment: "✅ Geographic Lookup API fully functional - GET /api/geo/lookup-city correctly returns department_name and region_name for French cities (tested Paris, Lyon, Marseille, Toulouse, Nice). GET /api/geo/regions returns 18 French regions including expected ones. GET /api/geo/departments returns 99 departments, and filtering by region_code=IDF correctly returns 8 Île-de-France departments including Paris (75)."
+
 frontend:
   - task: "Home Screen with DJ Search"
     implemented: true
@@ -356,10 +401,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "SIRET Verification API (INSEE)"
-    - "DJ Search API"
-    - "DJ Registration API"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -369,3 +411,7 @@ agent_communication:
     message: "MVP implementation complete. Backend APIs for SIRET verification, auth, DJ management, contact, reviews, and Stripe subscriptions are implemented. Frontend has all core screens. SIRET verification with INSEE API confirmed working with real SIRET number."
   - agent: "testing"
     message: "✅ Stripe subscription API testing completed successfully with valid test API key. All endpoints working: checkout creation returns valid Stripe URLs, payment transactions recorded in database, status endpoint handles queries, webhook endpoint processes requests. Previous API key issue resolved. Stripe integration fully functional for 5€ monthly DJ subscriptions."
+  - agent: "main"
+    message: "New features implemented: 1) DJ visibility strictly enforced - GET /api/djs/{user_id} now requires subscription_status='active', POST /api/contact checks subscription. 2) Dashboard lock screen - GET /api/dj/dashboard returns is_locked=true and lock_message when subscription inactive. 3) Geographic APIs - GET /api/geo/lookup-city, /regions, /departments, /djs-map. 4) Map screen using Leaflet with iframe on web and WebView on native. 5) Geo auto-fill on DJ registration form. Please test the 3 new backend tasks marked as needs_retesting."
+  - agent: "testing"
+    message: "🎉 ALL 3 NEW BACKEND FEATURES TESTED SUCCESSFULLY! 1) DJ Visibility Filter: ✅ GET /api/djs/{user_id} returns 404 for inactive DJs, 200 for active. POST /api/contact rejects inactive DJs (404), accepts active (200). GET /api/djs and /api/geo/djs-map only show active DJs. 2) DJ Dashboard Lock Screen: ✅ GET /api/dj/dashboard returns is_locked=true with lock_message for inactive DJs, limited stats (zeros). Active DJs show is_locked=false with real stats. 3) Geographic Lookup API: ✅ All endpoints working - city lookup returns department/region, regions endpoint returns 18 French regions, departments endpoint returns 99 departments with IDF filtering working. Backend implementation is complete and fully functional."

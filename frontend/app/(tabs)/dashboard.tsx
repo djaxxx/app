@@ -123,149 +123,190 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* Subscription Status */}
-        {dashboard?.subscription_status !== 'active' && (
-          <View style={styles.subscriptionSection}>
-            <View style={styles.subscriptionHeader}>
-              <Ionicons name="warning" size={24} color="#F59E0B" />
-              <Text style={styles.subscriptionTitle}>Abonnement inactif</Text>
+        {/* Lock Screen for Unpaid DJs */}
+        {dashboard?.is_locked ? (
+          <View style={styles.lockedContainer}>
+            <View style={styles.lockIconContainer}>
+              <Ionicons name="lock-closed" size={48} color="#F59E0B" />
             </View>
-            <Text style={styles.subscriptionSubtitle}>
-              Votre profil n'est pas visible. Choisissez votre formule :
+            <Text style={styles.lockedTitle}>Profil masqué</Text>
+            <Text style={styles.lockedMessage}>
+              {dashboard.lock_message || "Votre profil n'est pas visible sur la plateforme. Activez votre abonnement pour apparaître dans les recherches et sur la carte."}
             </Text>
-            
-            <View style={styles.plansContainer}>
+
+            <View style={styles.lockedBenefits}>
+              <View style={styles.benefitRow}>
+                <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                <Text style={styles.benefitText}>Visible sur la carte et dans les recherches</Text>
+              </View>
+              <View style={styles.benefitRow}>
+                <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                <Text style={styles.benefitText}>Recevez des demandes de contact clients</Text>
+              </View>
+              <View style={styles.benefitRow}>
+                <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                <Text style={styles.benefitText}>Statistiques détaillées de votre profil</Text>
+              </View>
+              <View style={styles.benefitRow}>
+                <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                <Text style={styles.benefitText}>Badge vérifié et mise en avant</Text>
+              </View>
+            </View>
+
+            <View style={styles.subscriptionSection}>
+              <Text style={styles.subscriptionChoiceTitle}>Choisissez votre formule</Text>
+
+              <View style={styles.plansContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.planCard,
+                    selectedPlan === 'monthly' && styles.planCardSelected,
+                  ]}
+                  onPress={() => setSelectedPlan('monthly')}
+                >
+                  <View style={styles.planHeader}>
+                    <Text style={styles.planName}>Mensuel</Text>
+                    {selectedPlan === 'monthly' && (
+                      <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                    )}
+                  </View>
+                  <Text style={styles.planPrice}>8€</Text>
+                  <Text style={styles.planPeriod}>par mois</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.planCard,
+                    selectedPlan === 'annual' && styles.planCardSelected,
+                  ]}
+                  onPress={() => setSelectedPlan('annual')}
+                >
+                  <View style={styles.planBadge}>
+                    <Text style={styles.planBadgeText}>-17%</Text>
+                  </View>
+                  <View style={styles.planHeader}>
+                    <Text style={styles.planName}>Annuel</Text>
+                    {selectedPlan === 'annual' && (
+                      <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
+                    )}
+                  </View>
+                  <Text style={styles.planPrice}>80€</Text>
+                  <Text style={styles.planPeriod}>par an</Text>
+                  <Text style={styles.planSaving}>Économisez 16€</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Button
+                title={subscribing ? 'Chargement...' : `S'abonner (${selectedPlan === 'monthly' ? '8€/mois' : '80€/an'})`}
+                onPress={() => handleSubscribe(selectedPlan)}
+                loading={subscribing}
+                style={styles.subscribeButton}
+              />
+            </View>
+
+            {/* Limited: Edit Profile only */}
+            <TouchableOpacity
+              style={styles.editProfileLocked}
+              onPress={() => router.push('/edit-profile')}
+            >
+              <Ionicons name="create-outline" size={20} color="#8B5CF6" />
+              <Text style={styles.editProfileLockedText}>Modifier mon profil</Text>
+              <Ionicons name="chevron-forward" size={20} color="#666" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* Active Subscription Badge */}
+            <View style={styles.activeSubBanner}>
+              <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+              <Text style={styles.activeSubText}>Abonnement actif — Profil visible</Text>
+            </View>
+
+            {/* Stats Cards */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Ionicons name="eye" size={32} color="#8B5CF6" />
+                <Text style={styles.statValue}>{dashboard?.nombre_vues || 0}</Text>
+                <Text style={styles.statLabel}>Vues du profil</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Ionicons name="mail" size={32} color="#10B981" />
+                <Text style={styles.statValue}>{dashboard?.nombre_demandes || 0}</Text>
+                <Text style={styles.statLabel}>Demandes</Text>
+                {(dashboard?.demandes_non_lues ?? 0) > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationText}>{dashboard?.demandes_non_lues}</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.statCard}>
+                <Ionicons name="star" size={32} color="#F59E0B" />
+                <Text style={styles.statValue}>{dashboard?.note_moyenne?.toFixed(1) || '0.0'}</Text>
+                <Text style={styles.statLabel}>{dashboard?.nombre_avis || 0} avis</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Ionicons name="checkmark-circle" size={32} color="#3B82F6" />
+                <Text style={styles.statValue}>{dashboard?.profil_complete_percent || 0}%</Text>
+                <Text style={styles.statLabel}>Profil complet</Text>
+              </View>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Actions rapides</Text>
+              
               <TouchableOpacity
-                style={[
-                  styles.planCard,
-                  selectedPlan === 'monthly' && styles.planCardSelected,
-                ]}
-                onPress={() => setSelectedPlan('monthly')}
+                style={styles.actionItem}
+                onPress={() => router.push('/edit-profile')}
               >
-                <View style={styles.planHeader}>
-                  <Text style={styles.planName}>Mensuel</Text>
-                  {selectedPlan === 'monthly' && (
-                    <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
-                  )}
-                </View>
-                <Text style={styles.planPrice}>8€</Text>
-                <Text style={styles.planPeriod}>par mois</Text>
+                <Ionicons name="person" size={24} color="#8B5CF6" />
+                <Text style={styles.actionText}>Éditer mon profil</Text>
+                <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.planCard,
-                  selectedPlan === 'annual' && styles.planCardSelected,
-                ]}
-                onPress={() => setSelectedPlan('annual')}
-              >
-                <View style={styles.planBadge}>
-                  <Text style={styles.planBadgeText}>-17%</Text>
-                </View>
-                <View style={styles.planHeader}>
-                  <Text style={styles.planName}>Annuel</Text>
-                  {selectedPlan === 'annual' && (
-                    <Ionicons name="checkmark-circle" size={20} color="#8B5CF6" />
-                  )}
-                </View>
-                <Text style={styles.planPrice}>80€</Text>
-                <Text style={styles.planPeriod}>par an</Text>
-                <Text style={styles.planSaving}>Économisez 16€</Text>
+              <TouchableOpacity style={styles.actionItem}>
+                <Ionicons name="mail" size={24} color="#10B981" />
+                <Text style={styles.actionText}>Mes demandes de contact</Text>
+                <Ionicons name="chevron-forward" size={24} color="#666" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionItem}>
+                <Ionicons name="star" size={24} color="#F59E0B" />
+                <Text style={styles.actionText}>Mes avis clients</Text>
+                <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
             </View>
 
-            <Button
-              title={subscribing ? 'Chargement...' : `S'abonner (${selectedPlan === 'monthly' ? '8€/mois' : '80€/an'})`}
-              onPress={() => handleSubscribe(selectedPlan)}
-              loading={subscribing}
-              style={styles.subscribeButton}
-            />
-          </View>
-        )}
-
-        {/* Stats Cards */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Ionicons name="eye" size={32} color="#8B5CF6" />
-            <Text style={styles.statValue}>{dashboard?.nombre_vues || 0}</Text>
-            <Text style={styles.statLabel}>Vues du profil</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="mail" size={32} color="#10B981" />
-            <Text style={styles.statValue}>{dashboard?.nombre_demandes || 0}</Text>
-            <Text style={styles.statLabel}>Demandes</Text>
-            {dashboard?.demandes_non_lues > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationText}>{dashboard.demandes_non_lues}</Text>
+            {/* Recent Reviews */}
+            {dashboard?.recent_reviews && dashboard.recent_reviews.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Derniers avis</Text>
+                {dashboard.recent_reviews.map((review: any) => (
+                  <View key={review.review_id} style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <Text style={styles.reviewAuthor}>{review.client_nom}</Text>
+                      <View style={styles.reviewStars}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Ionicons
+                            key={star}
+                            name={star <= review.note ? 'star' : 'star-outline'}
+                            size={14}
+                            color="#FFD700"
+                          />
+                        ))}
+                      </View>
+                    </View>
+                    <Text style={styles.reviewText} numberOfLines={2}>
+                      {review.commentaire}
+                    </Text>
+                  </View>
+                ))}
               </View>
             )}
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="star" size={32} color="#F59E0B" />
-            <Text style={styles.statValue}>{dashboard?.note_moyenne?.toFixed(1) || '0.0'}</Text>
-            <Text style={styles.statLabel}>{dashboard?.nombre_avis || 0} avis</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="checkmark-circle" size={32} color="#3B82F6" />
-            <Text style={styles.statValue}>{dashboard?.profil_complete_percent || 0}%</Text>
-            <Text style={styles.statLabel}>Profil complet</Text>
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions rapides</Text>
-          
-          <TouchableOpacity
-            style={styles.actionItem}
-            onPress={() => router.push('/edit-profile')}
-          >
-            <Ionicons name="person" size={24} color="#8B5CF6" />
-            <Text style={styles.actionText}>Éditer mon profil</Text>
-            <Ionicons name="chevron-forward" size={24} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionItem}>
-            <Ionicons name="mail" size={24} color="#10B981" />
-            <Text style={styles.actionText}>Mes demandes de contact</Text>
-            <Ionicons name="chevron-forward" size={24} color="#666" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionItem}>
-            <Ionicons name="star" size={24} color="#F59E0B" />
-            <Text style={styles.actionText}>Mes avis clients</Text>
-            <Ionicons name="chevron-forward" size={24} color="#666" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Recent Reviews */}
-        {dashboard?.recent_reviews && dashboard.recent_reviews.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Derniers avis</Text>
-            {dashboard.recent_reviews.map((review: any) => (
-              <View key={review.review_id} style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewAuthor}>{review.client_nom}</Text>
-                  <View style={styles.reviewStars}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Ionicons
-                        key={star}
-                        name={star <= review.note ? 'star' : 'star-outline'}
-                        size={14}
-                        color="#FFD700"
-                      />
-                    ))}
-                  </View>
-                </View>
-                <Text style={styles.reviewText} numberOfLines={2}>
-                  {review.commentaire}
-                </Text>
-              </View>
-            ))}
-          </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -337,7 +378,14 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: '#2a2a2a',
+  },
+  subscriptionChoiceTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   subscriptionHeader: {
     flexDirection: 'row',
@@ -530,5 +578,77 @@ const styles = StyleSheet.create({
   createButton: {
     marginTop: 24,
     width: '100%',
+  },
+  lockedContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  lockIconContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  lockedTitle: {
+    color: '#F59E0B',
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  lockedMessage: {
+    color: '#888',
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  lockedBenefits: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  benefitText: {
+    color: '#ccc',
+    fontSize: 14,
+    marginLeft: 12,
+    flex: 1,
+  },
+  editProfileLocked: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  editProfileLockedText: {
+    flex: 1,
+    color: '#8B5CF6',
+    fontSize: 16,
+    marginLeft: 12,
+    fontWeight: '600',
+  },
+  activeSubBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    marginHorizontal: 20,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  activeSubText: {
+    color: '#10B981',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });

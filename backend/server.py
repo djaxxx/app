@@ -11,6 +11,14 @@ import uuid
 from datetime import datetime, timezone, timedelta
 import httpx
 from enum import Enum
+import re
+
+# Import French geographic data
+from france_geo import (
+    REGIONS_FRANCE, DEPARTMENTS_FRANCE, MAJOR_CITIES_FRANCE,
+    get_department_for_city, get_all_regions, get_all_departments,
+    get_departments_by_region
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -25,7 +33,7 @@ INSEE_API_KEY = os.environ.get('INSEE_API_KEY', '')
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
 # Create the main app
-app = FastAPI(title="DJ Connect France API")
+app = FastAPI(title="DJ Match France API")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -76,6 +84,12 @@ class DJProfileCreate(BaseModel):
     nom_de_scene: str
     telephone: str
     ville: str
+    department_code: Optional[str] = ""
+    department_name: Optional[str] = ""
+    region_code: Optional[str] = ""
+    region_name: Optional[str] = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     zone_intervention: List[str] = []
     siret: str
     description: Optional[str] = ""
@@ -98,6 +112,12 @@ class DJProfileUpdate(BaseModel):
     nom_de_scene: Optional[str] = None
     telephone: Optional[str] = None
     ville: Optional[str] = None
+    department_code: Optional[str] = None
+    department_name: Optional[str] = None
+    region_code: Optional[str] = None
+    region_name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     zone_intervention: Optional[List[str]] = None
     description: Optional[str] = None
     annees_experience: Optional[int] = None
@@ -200,7 +220,6 @@ def extract_price_from_tarif(tarif: str) -> int:
     if not tarif:
         return 0
     # Remove common words and extract numbers
-    import re
     numbers = re.findall(r'\d+', tarif.replace(' ', ''))
     if numbers:
         return int(numbers[0])
@@ -299,11 +318,79 @@ async def require_dj(request: Request) -> dict:
 
 @api_router.get("/")
 async def root():
-    return {"message": "DJ Connect France API", "version": "1.0.0"}
+    return {"message": "DJ Match France API", "version": "1.0.0"}
 
 @api_router.get("/health")
 async def health():
     return {"status": "healthy"}
+
+# ===================
+# GEOGRAPHIC DATA
+# ===================
+@api_router.get("/geo/regions")
+async def get_regions():
+    """Get all French regions"""
+    return get_all_regions()
+
+@api_router.get("/geo/departments")
+async def get_departments(region_code: Optional[str] = None):
+    """Get all French departments, optionally filtered by region"""
+    if region_code:
+        return get_departments_by_region(region_code)
+    return get_all_departments()
+
+@api_router.get("/geo/lookup-city")
+async def lookup_city(city: str):
+    """Lookup city information (department, region, coordinates)"""
+    result = get_department_for_city(city)
+    if result:
+        return result
+    return {"error": "Ville non trouvée", "city": city}
+
+@api_router.get("/geo/djs-map")
+async def get_djs_for_map(
+    region_code: Optional[str] = None,
+    department_code: Optional[str] = None,
+    type_evenement: Optional[str] = None,
+    verifie_uniquement: bool = False
+):
+    """Get DJ locations for map display (only active and subscribed DJs)"""
+    query = {"is_active": True, "subscription_status": "active"}
+    
+    if region_code:
+        query["region_code"] = region_code
+    if department_code:
+        query["department_code"] = department_code
+    if type_evenement:
+        query["types_evenements"] = {"$in": [type_evenement]}
+    if verifie_uniquement:
+        query["badge_verifie"] = True
+    
+    # Only get DJs with coordinates
+    query["latitude"] = {"$ne": None}
+    query["longitude"] = {"$ne": None}
+    
+    # Project only necessary fields for map
+    djs = await db.dj_profiles.find(query, {
+        "_id": 0,
+        "user_id": 1,
+        "nom_de_scene": 1,
+        "ville": 1,
+        "department_name": 1,
+        "region_name": 1,
+        "latitude": 1,
+        "longitude": 1,
+        "photo_profil": 1,
+        "note_moyenne": 1,
+        "badge_verifie": 1,
+        "tarif_indicatif": 1,
+        "types_evenements": 1
+    }).to_list(500)
+    
+    return {
+        "total": len(djs),
+        "djs": djs
+    }
 
 # ===================
 # SIRET VERIFICATION
@@ -498,15 +585,21 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
     if existing:
         raise HTTPException(status_code=400, detail="Vous avez déjà un profil DJ")
     
-    # Verify SIRET
+    # Verify SIRET - MANDATORY
+    if not profile_data.siret or len(profile_data.siret.replace(" ", "")) != 14:
+        raise HTTPException(status_code=400, detail="Le numéro SIRET est obligatoire (14 chiffres)")
+    
     siret_result = await verify_siret(SiretVerificationRequest(siret=profile_data.siret))
     if not siret_result.valid:
-        raise HTTPException(status_code=400, detail=f"SIRET invalide: {siret_result.message}")
+        raise HTTPException(status_code=400, detail=f"SIRET invalide - Inscription refusée: {siret_result.message}")
     
-    # Validate minimum tarif
+    # Validate minimum tarif - MANDATORY
     tarif_valid, tarif_error = validate_minimum_tarif(profile_data.tarif_indicatif or "")
     if not tarif_valid:
         raise HTTPException(status_code=400, detail=tarif_error)
+    
+    # Auto-geocode city if no coordinates provided
+    geo_info = get_department_for_city(profile_data.ville)
     
     # Create profile
     profile_dict = profile_data.dict()
@@ -517,11 +610,22 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
     profile_dict["created_at"] = datetime.now(timezone.utc)
     profile_dict["updated_at"] = datetime.now(timezone.utc)
     profile_dict["subscription_status"] = "inactive"
-    profile_dict["is_active"] = False  # Inactive until subscription
+    profile_dict["is_active"] = False  # INACTIVE until payment
     profile_dict["note_moyenne"] = 0.0
     profile_dict["nombre_avis"] = 0
     profile_dict["nombre_vues"] = 0
     profile_dict["nombre_demandes"] = 0
+    
+    # Add geocoded data if found
+    if geo_info:
+        profile_dict["department_code"] = geo_info.get("department_code", "")
+        profile_dict["department_name"] = geo_info.get("department_name", "")
+        profile_dict["region_code"] = geo_info.get("region_code", "")
+        profile_dict["region_name"] = geo_info.get("region_name", "")
+        if not profile_dict.get("latitude"):
+            profile_dict["latitude"] = geo_info.get("lat")
+        if not profile_dict.get("longitude"):
+            profile_dict["longitude"] = geo_info.get("lon")
     
     # Calculate completion and badge
     profile_dict["profil_complete_percent"] = calculate_profile_completion(profile_dict)
@@ -572,10 +676,35 @@ async def get_my_dj_profile(request: Request):
 
 @api_router.get("/dj/dashboard")
 async def get_dj_dashboard(request: Request):
-    """Get DJ dashboard statistics"""
+    """Get DJ dashboard statistics - returns subscription_status for lock screen"""
     user_data = await require_dj(request)
     profile = user_data["dj_profile"]
     user_id = user_data["user_id"]
+    
+    subscription_status = profile.get("subscription_status", "inactive")
+    
+    # Always return subscription info
+    base_response = {
+        "subscription_status": subscription_status,
+        "subscription_plan": profile.get("subscription_plan"),
+        "subscription_end_date": profile.get("subscription_end_date"),
+        "profil_complete_percent": profile.get("profil_complete_percent", 0),
+        "badge_verifie": profile.get("badge_verifie", False),
+        "is_locked": subscription_status != "active",
+    }
+    
+    # If subscription inactive, return limited data
+    if subscription_status != "active":
+        base_response.update({
+            "nombre_vues": 0,
+            "nombre_demandes": 0,
+            "demandes_non_lues": 0,
+            "note_moyenne": 0,
+            "nombre_avis": 0,
+            "recent_reviews": [],
+            "lock_message": "Votre profil est masqué. Activez votre abonnement pour être visible sur la plateforme.",
+        })
+        return base_response
     
     # Get contact requests count
     requests_count = await db.contact_requests.count_documents({"dj_user_id": user_id})
@@ -587,18 +716,16 @@ async def get_dj_dashboard(request: Request):
         if "_id" in review:
             del review["_id"]
     
-    return {
+    base_response.update({
         "nombre_vues": profile.get("nombre_vues", 0),
         "nombre_demandes": requests_count,
         "demandes_non_lues": unread_requests,
         "note_moyenne": profile.get("note_moyenne", 0),
         "nombre_avis": profile.get("nombre_avis", 0),
-        "profil_complete_percent": profile.get("profil_complete_percent", 0),
-        "badge_verifie": profile.get("badge_verifie", False),
-        "subscription_status": profile.get("subscription_status", "inactive"),
-        "subscription_end_date": profile.get("subscription_end_date"),
-        "recent_reviews": recent_reviews
-    }
+        "recent_reviews": recent_reviews,
+    })
+    
+    return base_response
 
 # ===================
 # PUBLIC DJ LISTING
@@ -651,11 +778,14 @@ async def list_djs(
 
 @api_router.get("/djs/{user_id}")
 async def get_dj_profile(user_id: str):
-    """Get a specific DJ profile"""
-    dj = await db.dj_profiles.find_one({"user_id": user_id, "is_active": True}, {"_id": 0})
+    """Get a specific DJ profile - only active subscribed DJs are visible"""
+    dj = await db.dj_profiles.find_one(
+        {"user_id": user_id, "is_active": True, "subscription_status": "active"},
+        {"_id": 0}
+    )
     
     if not dj:
-        raise HTTPException(status_code=404, detail="DJ non trouvé")
+        raise HTTPException(status_code=404, detail="DJ non trouvé ou profil non visible (abonnement inactif)")
     
     # Increment view count
     await db.dj_profiles.update_one(
@@ -680,11 +810,15 @@ async def get_dj_profile(user_id: str):
 # ===================
 @api_router.post("/contact")
 async def create_contact_request(contact: ContactRequest):
-    """Create a contact request for a DJ"""
-    # Verify DJ exists
-    dj = await db.dj_profiles.find_one({"user_id": contact.dj_user_id, "is_active": True})
+    """Create a contact request for a DJ (only active subscribed DJs)"""
+    # Verify DJ exists and has active subscription
+    dj = await db.dj_profiles.find_one({
+        "user_id": contact.dj_user_id,
+        "is_active": True,
+        "subscription_status": "active"
+    })
     if not dj:
-        raise HTTPException(status_code=404, detail="DJ non trouvé")
+        raise HTTPException(status_code=404, detail="DJ non trouvé ou profil non visible")
     
     contact_dict = contact.dict()
     contact_dict["request_id"] = f"req_{uuid.uuid4().hex[:12]}"
@@ -855,7 +989,7 @@ async def create_subscription_checkout(request: Request):
 @api_router.get("/subscription/status/{session_id}")
 async def get_subscription_status(session_id: str, request: Request):
     """Check subscription payment status"""
-    user = await require_auth(request)
+    await require_auth(request)
     
     try:
         from emergentintegrations.payments.stripe.checkout import StripeCheckout

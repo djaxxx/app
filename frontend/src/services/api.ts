@@ -40,6 +40,66 @@ class ApiService {
     return this.request<EventType[]>('/api/event-types');
   }
 
+  // Geographic Data
+  async getRegions() {
+    return this.request<{ code: string; name: string }[]>('/api/geo/regions');
+  }
+
+  async getDepartments(regionCode?: string) {
+    const params = regionCode ? `?region_code=${regionCode}` : '';
+    return this.request<{
+      code: string;
+      name: string;
+      region_code?: string;
+      region_name?: string;
+      lat: number;
+      lon: number;
+    }[]>(`/api/geo/departments${params}`);
+  }
+
+  async lookupCity(city: string) {
+    return this.request<{
+      city: string;
+      department_code: string;
+      department_name: string;
+      region_code: string;
+      region_name: string;
+      lat: number;
+      lon: number;
+    } | { error: string }>(`/api/geo/lookup-city?city=${encodeURIComponent(city)}`);
+  }
+
+  async getDJsForMap(filters: {
+    region_code?: string;
+    department_code?: string;
+    type_evenement?: string;
+    verifie_uniquement?: boolean;
+  } = {}) {
+    const params = new URLSearchParams();
+    if (filters.region_code) params.append('region_code', filters.region_code);
+    if (filters.department_code) params.append('department_code', filters.department_code);
+    if (filters.type_evenement) params.append('type_evenement', filters.type_evenement);
+    if (filters.verifie_uniquement) params.append('verifie_uniquement', 'true');
+
+    return this.request<{
+      total: number;
+      djs: {
+        user_id: string;
+        nom_de_scene: string;
+        ville: string;
+        department_name?: string;
+        region_name?: string;
+        latitude: number;
+        longitude: number;
+        photo_profil?: string;
+        note_moyenne: number;
+        badge_verifie: boolean;
+        tarif_indicatif?: string;
+        types_evenements?: string[];
+      }[];
+    }>(`/api/geo/djs-map?${params.toString()}`);
+  }
+
   // DJ Profiles (Public)
   async searchDJs(filters: DJSearchFilters = {}, page = 1, limit = 20) {
     const params = new URLSearchParams();

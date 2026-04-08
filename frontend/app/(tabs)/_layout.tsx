@@ -36,6 +36,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Carte',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="search"
         options={{
           title: 'Rechercher',
@@ -44,17 +53,16 @@ export default function TabLayout() {
           ),
         }}
       />
-      {isDJ && (
-        <Tabs.Screen
-          name="dashboard"
-          options={{
-            title: 'Tableau de bord',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="stats-chart" size={size} color={color} />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="dashboard"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="stats-chart" size={size} color={color} />
+          ),
+          href: isDJ ? '/(tabs)/dashboard' : null,
+        }}
+      />
       <Tabs.Screen
         name="profile"
         options={{
