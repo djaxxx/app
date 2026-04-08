@@ -95,8 +95,8 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Connexion</Text>
+            <TouchableOpacity style={styles.djRegisterButton} onPress={handleLogin}>
+              <Text style={styles.djRegisterButtonText}>🎧 S'inscrire comme DJ</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -339,6 +339,17 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  djRegisterButton: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  djRegisterButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
   searchSection: {
     paddingHorizontal: 20,
