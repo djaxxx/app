@@ -747,8 +747,11 @@ async def create_review(review_data: ReviewCreate):
     
     await db.reviews.insert_one(review_dict)
     
-    # Update DJ rating
-    all_reviews = await db.reviews.find({"dj_user_id": review_data.dj_user_id}).to_list(1000)
+    # Update DJ rating - optimized query with projection
+    all_reviews = await db.reviews.find(
+        {"dj_user_id": review_data.dj_user_id}, 
+        {"note": 1, "_id": 0}
+    ).to_list(1000)
     total_notes = sum(r.get("note", 0) for r in all_reviews)
     avg_note = total_notes / len(all_reviews) if all_reviews else 0
     
