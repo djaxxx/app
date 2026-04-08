@@ -193,6 +193,30 @@ class DJSearchFilters(BaseModel):
 # ===================
 # HELPER FUNCTIONS
 # ===================
+MINIMUM_TARIF = 800  # Minimum price in euros
+
+def extract_price_from_tarif(tarif: str) -> int:
+    """Extract numeric price from tarif string"""
+    if not tarif:
+        return 0
+    # Remove common words and extract numbers
+    import re
+    numbers = re.findall(r'\d+', tarif.replace(' ', ''))
+    if numbers:
+        return int(numbers[0])
+    return 0
+
+def validate_minimum_tarif(tarif: str) -> tuple[bool, str]:
+    """Validate that the tarif is at least MINIMUM_TARIF euros"""
+    if not tarif or tarif.strip() == "":
+        return False, f"Le tarif indicatif est obligatoire (minimum {MINIMUM_TARIF}€)"
+    
+    price = extract_price_from_tarif(tarif)
+    if price < MINIMUM_TARIF:
+        return False, f"Le tarif minimum doit être de {MINIMUM_TARIF}€. Tarif détecté: {price}€"
+    
+    return True, ""
+
 def calculate_profile_completion(profile: dict) -> int:
     """Calculate profile completion percentage"""
     required_fields = ['nom', 'prenom', 'nom_de_scene', 'telephone', 'ville', 'siret', 'description']
@@ -479,6 +503,11 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
     if not siret_result.valid:
         raise HTTPException(status_code=400, detail=f"SIRET invalide: {siret_result.message}")
     
+    # Validate minimum tarif
+    tarif_valid, tarif_error = validate_minimum_tarif(profile_data.tarif_indicatif or "")
+    if not tarif_valid:
+        raise HTTPException(status_code=400, detail=tarif_error)
+    
     # Create profile
     profile_dict = profile_data.dict()
     profile_dict["user_id"] = user["user_id"]
@@ -511,6 +540,12 @@ async def update_dj_profile(update_data: DJProfileUpdate, request: Request):
     """Update DJ profile"""
     user_data = await require_dj(request)
     user_id = user_data["user_id"]
+    
+    # Validate minimum tarif if being updated
+    if update_data.tarif_indicatif is not None:
+        tarif_valid, tarif_error = validate_minimum_tarif(update_data.tarif_indicatif)
+        if not tarif_valid:
+            raise HTTPException(status_code=400, detail=tarif_error)
     
     update_dict = {k: v for k, v in update_data.dict().items() if v is not None}
     update_dict["updated_at"] = datetime.now(timezone.utc)

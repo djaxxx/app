@@ -102,6 +102,12 @@ export default function DJRegisterScreen() {
     }));
   };
 
+  const extractPrice = (tarif: string): number => {
+    if (!tarif) return 0;
+    const numbers = tarif.replace(/\s/g, '').match(/\d+/);
+    return numbers ? parseInt(numbers[0]) : 0;
+  };
+
   const handleSubmit = async () => {
     if (!formData.nom || !formData.prenom || !formData.nom_de_scene || !formData.telephone || !formData.ville || !formData.siret) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
@@ -110,6 +116,13 @@ export default function DJRegisterScreen() {
 
     if (!siretResult?.valid) {
       Alert.alert('Erreur', 'Veuillez vérifier votre numéro SIRET');
+      return;
+    }
+
+    // Validate minimum tarif
+    const price = extractPrice(formData.tarif_indicatif);
+    if (price < 800) {
+      Alert.alert('Tarif minimum requis', 'Le tarif indicatif doit être d\'au moins 800€. Tarif détecté: ' + (price > 0 ? price + '€' : 'non renseigné'));
       return;
     }
 
@@ -414,14 +427,15 @@ export default function DJRegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Tarif indicatif</Text>
+                <Text style={styles.label}>Tarif indicatif * (minimum 800€)</Text>
                 <TextInput
                   style={styles.input}
                   value={formData.tarif_indicatif}
                   onChangeText={(text) => setFormData({ ...formData, tarif_indicatif: text })}
-                  placeholder="À partir de 500€"
+                  placeholder="À partir de 800€"
                   placeholderTextColor="#666"
                 />
+                <Text style={styles.hint}>Indiquez votre tarif de base (ex: "800€", "À partir de 1000€")</Text>
               </View>
 
               <Text style={styles.sectionTitle}>Réseaux sociaux</Text>
