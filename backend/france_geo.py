@@ -196,11 +196,20 @@ MAJOR_CITIES_FRANCE = {
     "Melun": {"department": "77", "lat": 48.5392, "lon": 2.6597},
 }
 
+import httpx
+import unicodedata
+
+# Helper to normalize accented strings for matching
+def _normalize(text: str) -> str:
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    return text.lower().strip()
+
 def get_department_for_city(city_name: str) -> dict | None:
-    """Find department info for a city"""
+    """Find department info for a city using local DB first, then French government API"""
     city_normalized = city_name.strip().title()
     
-    # Check in major cities first
+    # Check in major cities first (fast local lookup)
     if city_normalized in MAJOR_CITIES_FRANCE:
         city_info = MAJOR_CITIES_FRANCE[city_normalized]
         dept_code = city_info["department"]
@@ -220,7 +229,7 @@ def get_department_for_city(city_name: str) -> dict | None:
     
     # Check if it's a department chef-lieu
     for dept_code, dept_info in DEPARTMENTS_FRANCE.items():
-        if dept_info["chef_lieu"].lower() == city_name.lower():
+        if _normalize(dept_info["chef_lieu"]) == _normalize(city_name):
             region_code = dept_info["region"]
             region_info = REGIONS_FRANCE.get(region_code)
             return {
@@ -232,6 +241,35 @@ def get_department_for_city(city_name: str) -> dict | None:
                 "lat": dept_info["lat"],
                 "lon": dept_info["lon"]
             }
+    
+    # Fallback: use French government API (covers ALL 36,000+ communes)
+    try:
+        response = httpx.get(
+            "https://geo.api.gouv.fr/communes",
+            params={"nom": city_name, "fields": "nom,code,codeDepartement,codeRegion,centre,population", "boost": "population", "limit": 5},
+            timeout=5.0
+        )
+        if response.status_code == 200:
+            results = response.json()
+            if results:
+                commune = results[0]
+                dept_code = commune.get("codeDepartement", "")
+                dept_info = DEPARTMENTS_FRANCE.get(dept_code)
+                if dept_info:
+                    region_code = dept_info["region"]
+                    region_info = REGIONS_FRANCE.get(region_code)
+                    centre = commune.get("centre", {}).get("coordinates", [0, 0])
+                    return {
+                        "city": commune.get("nom", city_name),
+                        "department_code": dept_code,
+                        "department_name": dept_info["name"],
+                        "region_code": region_code,
+                        "region_name": region_info["name"] if region_info else None,
+                        "lat": centre[1] if len(centre) > 1 else dept_info["lat"],
+                        "lon": centre[0] if len(centre) > 0 else dept_info["lon"]
+                    }
+    except Exception:
+        pass
     
     return None
 
