@@ -41,6 +41,7 @@ export default function RootLayout() {
         <Stack.Screen name="dj-register" options={{ title: 'Inscription DJ' }} />
         <Stack.Screen name="subscription/success" options={{ title: 'Paiement' }} />
         <Stack.Screen name="subscription/cancel" options={{ title: 'Paiement annulé' }} />
+        <Stack.Screen name="edit-profile" options={{ title: 'Modifier le profil', headerShown: false }} />
       </Stack>
     </>
   );

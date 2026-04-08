@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../src/stores/authStore';
 import { api } from '../src/services/api';
 import { Button } from '../src/components/Button';
+import { ImageUpload, GalleryUpload } from '../src/components/ImageUpload';
 import { EventType } from '../src/types';
 
 export default function DJRegisterScreen() {
@@ -45,6 +46,8 @@ export default function DJRegisterScreen() {
     instagram: '',
     tiktok: '',
     youtube: '',
+    photo_profil: '',
+    galerie_photos: [] as string[],
   });
 
   useEffect(() => {
@@ -60,7 +63,6 @@ export default function DJRegisterScreen() {
   }, []);
 
   const handleLogin = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = typeof window !== 'undefined'
       ? `${window.location.origin}/dj-register`
       : '';
@@ -101,7 +103,6 @@ export default function DJRegisterScreen() {
   };
 
   const handleSubmit = async () => {
-    // Validation
     if (!formData.nom || !formData.prenom || !formData.nom_de_scene || !formData.telephone || !formData.ville || !formData.siret) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
       return;
@@ -122,7 +123,7 @@ export default function DJRegisterScreen() {
       };
 
       await api.registerDJ(profileData);
-      await checkAuth(); // Refresh user data
+      await checkAuth();
       
       Alert.alert(
         'Profil créé !',
@@ -160,12 +161,11 @@ export default function DJRegisterScreen() {
         <ScrollView style={styles.scrollView}>
           <View style={styles.header}>
             <Text style={styles.title}>Devenir DJ</Text>
-            <Text style={styles.subtitle}>Étape {step}/2</Text>
+            <Text style={styles.subtitle}>Étape {step}/3</Text>
           </View>
 
-          {/* Progress */}
           <View style={styles.progress}>
-            <View style={[styles.progressBar, { width: step === 1 ? '50%' : '100%' }]} />
+            <View style={[styles.progressBar, { width: step === 1 ? '33%' : step === 2 ? '66%' : '100%' }]} />
           </View>
 
           {step === 1 ? (
@@ -303,6 +303,39 @@ export default function DJRegisterScreen() {
                 style={styles.nextButton}
               />
             </View>
+          ) : step === 2 ? (
+            <View style={styles.form}>
+              <Text style={styles.sectionTitle}>Photos</Text>
+
+              <ImageUpload
+                image={formData.photo_profil}
+                onImageChange={(image) => setFormData({ ...formData, photo_profil: image || '' })}
+                label="Photo de profil"
+                size={150}
+                circular={true}
+              />
+
+              <GalleryUpload
+                images={formData.galerie_photos}
+                onImagesChange={(images) => setFormData({ ...formData, galerie_photos: images })}
+                maxImages={4}
+                label="Galerie photos (4 max)"
+              />
+
+              <View style={styles.buttonRow}>
+                <Button
+                  title="Retour"
+                  onPress={() => setStep(1)}
+                  variant="outline"
+                  style={styles.backButton}
+                />
+                <Button
+                  title="Suivant"
+                  onPress={() => setStep(3)}
+                  style={styles.submitButton}
+                />
+              </View>
+            </View>
           ) : (
             <View style={styles.form}>
               <Text style={styles.sectionTitle}>Profil professionnel</Text>
@@ -432,7 +465,7 @@ export default function DJRegisterScreen() {
               <View style={styles.buttonRow}>
                 <Button
                   title="Retour"
-                  onPress={() => setStep(1)}
+                  onPress={() => setStep(2)}
                   variant="outline"
                   style={styles.backButton}
                 />

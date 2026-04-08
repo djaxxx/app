@@ -174,7 +174,7 @@ export default function DashboardScreen() {
           
           <TouchableOpacity
             style={styles.actionItem}
-            onPress={() => router.push('/(tabs)/profile')}
+            onPress={() => router.push('/edit-profile')}
           >
             <Ionicons name="person" size={24} color="#8B5CF6" />
             <Text style={styles.actionText}>Éditer mon profil</Text>
