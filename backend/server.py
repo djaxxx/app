@@ -199,10 +199,12 @@ class ReviewCreate(BaseModel):
     note: int = Field(ge=1, le=5)
     commentaire: str
     type_evenement: Optional[str] = ""
+    date_evenement: Optional[str] = ""
 
 class Review(ReviewCreate):
     review_id: str = Field(default_factory=lambda: f"rev_{uuid.uuid4().hex[:12]}")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    status: str = "pending"  # pending, approved, rejected
     verified: bool = False
 
 class DJSearchFilters(BaseModel):
@@ -708,11 +710,14 @@ async def get_dj_dashboard(request: Request):
     requests_count = await db.contact_requests.count_documents({"dj_user_id": user_id})
     unread_requests = await db.contact_requests.count_documents({"dj_user_id": user_id, "read": False})
     
-    # Get recent reviews
-    recent_reviews = await db.reviews.find({"dj_user_id": user_id}).sort("created_at", -1).limit(5).to_list(5)
+    # Get recent reviews (approved only for stats)
+    recent_reviews = await db.reviews.find({"dj_user_id": user_id, "status": "approved"}).sort("created_at", -1).limit(5).to_list(5)
     for review in recent_reviews:
         if "_id" in review:
             del review["_id"]
+    
+    # Count pending reviews
+    pending_reviews_count = await db.reviews.count_documents({"dj_user_id": user_id, "status": "pending"})
     
     base_response.update({
         "nombre_vues": profile.get("nombre_vues", 0),
@@ -721,6 +726,7 @@ async def get_dj_dashboard(request: Request):
         "note_moyenne": profile.get("note_moyenne", 0),
         "nombre_avis": profile.get("nombre_avis", 0),
         "recent_reviews": recent_reviews,
+        "pending_reviews_count": pending_reviews_count,
     })
     
     return base_response
@@ -867,7 +873,7 @@ async def mark_contact_read(request_id: str, request: Request):
 # ===================
 @api_router.post("/reviews")
 async def create_review(review_data: ReviewCreate):
-    """Create a review for a DJ"""
+    """Create a review for a DJ — pending DJ approval"""
     dj = await db.dj_profiles.find_one({"user_id": review_data.dj_user_id, "is_active": True})
     if not dj:
         raise HTTPException(status_code=404, detail="DJ non trouvé")
@@ -875,30 +881,117 @@ async def create_review(review_data: ReviewCreate):
     review_dict = review_data.dict()
     review_dict["review_id"] = f"rev_{uuid.uuid4().hex[:12]}"
     review_dict["created_at"] = datetime.now(timezone.utc)
-    review_dict["verified"] = False  # Admin verification required
+    review_dict["status"] = "pending"
+    review_dict["verified"] = False
     
     await db.reviews.insert_one(review_dict)
     
-    # Update DJ rating - optimized query with projection
-    all_reviews = await db.reviews.find(
-        {"dj_user_id": review_data.dj_user_id}, 
-        {"note": 1, "_id": 0}
-    ).to_list(1000)
-    total_notes = sum(r.get("note", 0) for r in all_reviews)
-    avg_note = total_notes / len(all_reviews) if all_reviews else 0
-    
-    await db.dj_profiles.update_one(
-        {"user_id": review_data.dj_user_id},
-        {"$set": {"note_moyenne": round(avg_note, 1), "nombre_avis": len(all_reviews)}}
-    )
-    
-    return {"message": "Avis soumis avec succès", "review_id": review_dict["review_id"]}
+    return {"message": "Merci ! Votre avis a été soumis et sera publié après validation par le DJ.", "review_id": review_dict["review_id"]}
 
 @api_router.get("/djs/{user_id}/reviews")
 async def get_dj_reviews(user_id: str):
-    """Get reviews for a DJ"""
-    reviews = await db.reviews.find({"dj_user_id": user_id, "verified": True}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    """Get approved reviews for a DJ (public)"""
+    reviews = await db.reviews.find(
+        {"dj_user_id": user_id, "status": "approved"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
     return reviews
+
+@api_router.get("/dj/reviews/pending")
+async def get_pending_reviews(request: Request):
+    """DJ: Get pending reviews awaiting approval"""
+    user_data = await require_dj(request)
+    user_id = user_data["user_id"]
+    
+    pending = await db.reviews.find(
+        {"dj_user_id": user_id, "status": "pending"},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return {"reviews": pending, "count": len(pending)}
+
+@api_router.get("/dj/reviews/all")
+async def get_all_dj_reviews(request: Request):
+    """DJ: Get all reviews (pending + approved + rejected)"""
+    user_data = await require_dj(request)
+    user_id = user_data["user_id"]
+    
+    all_reviews = await db.reviews.find(
+        {"dj_user_id": user_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    pending_count = sum(1 for r in all_reviews if r.get("status") == "pending")
+    
+    return {"reviews": all_reviews, "total": len(all_reviews), "pending_count": pending_count}
+
+@api_router.put("/dj/reviews/{review_id}/approve")
+async def approve_review(review_id: str, request: Request):
+    """DJ: Approve a pending review"""
+    user_data = await require_dj(request)
+    user_id = user_data["user_id"]
+    
+    review = await db.reviews.find_one({"review_id": review_id, "dj_user_id": user_id})
+    if not review:
+        raise HTTPException(status_code=404, detail="Avis non trouvé")
+    
+    await db.reviews.update_one(
+        {"review_id": review_id},
+        {"$set": {"status": "approved", "verified": True}}
+    )
+    
+    # Recalculate rating with only approved reviews
+    approved_reviews = await db.reviews.find(
+        {"dj_user_id": user_id, "status": "approved"},
+        {"note": 1, "_id": 0}
+    ).to_list(1000)
+    
+    if approved_reviews:
+        total = sum(r.get("note", 0) for r in approved_reviews)
+        avg = total / len(approved_reviews)
+    else:
+        avg = 0
+    
+    await db.dj_profiles.update_one(
+        {"user_id": user_id},
+        {"$set": {"note_moyenne": round(avg, 1), "nombre_avis": len(approved_reviews)}}
+    )
+    
+    return {"message": "Avis approuvé et publié"}
+
+@api_router.put("/dj/reviews/{review_id}/reject")
+async def reject_review(review_id: str, request: Request):
+    """DJ: Reject a pending review"""
+    user_data = await require_dj(request)
+    user_id = user_data["user_id"]
+    
+    review = await db.reviews.find_one({"review_id": review_id, "dj_user_id": user_id})
+    if not review:
+        raise HTTPException(status_code=404, detail="Avis non trouvé")
+    
+    await db.reviews.update_one(
+        {"review_id": review_id},
+        {"$set": {"status": "rejected", "verified": False}}
+    )
+    
+    # Recalculate rating with only approved reviews
+    approved_reviews = await db.reviews.find(
+        {"dj_user_id": user_id, "status": "approved"},
+        {"note": 1, "_id": 0}
+    ).to_list(1000)
+    
+    if approved_reviews:
+        total = sum(r.get("note", 0) for r in approved_reviews)
+        avg = total / len(approved_reviews)
+    else:
+        avg = 0
+    
+    await db.dj_profiles.update_one(
+        {"user_id": user_id},
+        {"$set": {"note_moyenne": round(avg, 1), "nombre_avis": len(approved_reviews)}}
+    )
+    
+    return {"message": "Avis rejeté"}
 
 # ===================
 # STRIPE SUBSCRIPTION

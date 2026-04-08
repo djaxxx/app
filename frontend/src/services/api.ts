@@ -240,6 +240,34 @@ class ApiService {
     return this.request<{ djs: any[]; total: number }>('/api/admin/djs');
   }
 
+  // Reviews APIs
+  async submitReview(data: { dj_user_id: string; client_nom: string; client_email: string; note: number; commentaire: string; type_evenement?: string; date_evenement?: string }) {
+    return this.request<{ message: string; review_id: string }>('/api/reviews', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getDJReviews(userId: string) {
+    return this.request<any[]>(`/api/djs/${userId}/reviews`);
+  }
+
+  async getPendingReviews() {
+    return this.request<{ reviews: any[]; count: number }>('/api/dj/reviews/pending');
+  }
+
+  async getAllMyReviews() {
+    return this.request<{ reviews: any[]; total: number; pending_count: number }>('/api/dj/reviews/all');
+  }
+
+  async approveReview(reviewId: string) {
+    return this.request<{ message: string }>(`/api/dj/reviews/${reviewId}/approve`, { method: 'PUT' });
+  }
+
+  async rejectReview(reviewId: string) {
+    return this.request<{ message: string }>(`/api/dj/reviews/${reviewId}/reject`, { method: 'PUT' });
+  }
+
   async adminCreateDJ(djData: any) {
     return this.request<{ message: string; dj: any }>('/api/admin/create-dj', {
       method: 'POST',

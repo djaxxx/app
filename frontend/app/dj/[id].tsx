@@ -9,6 +9,9 @@ import {
   ActivityIndicator,
   Linking,
   Dimensions,
+  TextInput,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -25,6 +28,18 @@ export default function DJProfileScreen() {
   const [dj, setDJ] = useState<DJProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    client_nom: '',
+    client_email: '',
+    note: 5,
+    commentaire: '',
+    type_evenement: '',
+    date_evenement: '',
+  });
 
   useEffect(() => {
     const loadDJ = async () => {
@@ -32,6 +47,10 @@ export default function DJProfileScreen() {
       try {
         const profile = await api.getDJProfile(id);
         setDJ(profile);
+        try {
+          const reviewsData = await api.getDJReviews(id);
+          setReviews(reviewsData);
+        } catch {}
       } catch (err: any) {
         setError(err.message || 'Erreur lors du chargement');
       } finally {
@@ -41,6 +60,32 @@ export default function DJProfileScreen() {
 
     loadDJ();
   }, [id]);
+
+  const handleSubmitReview = async () => {
+    if (!reviewForm.client_nom.trim()) {
+      if (Platform.OS === 'web') window.alert('Veuillez entrer votre nom');
+      return;
+    }
+    if (!reviewForm.client_email.trim() || !reviewForm.client_email.includes('@')) {
+      if (Platform.OS === 'web') window.alert('Veuillez entrer un email valide');
+      return;
+    }
+    if (!reviewForm.commentaire.trim()) {
+      if (Platform.OS === 'web') window.alert('Veuillez écrire un commentaire');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await api.submitReview({ dj_user_id: id!, ...reviewForm });
+      setReviewSuccess(true);
+      setShowReviewForm(false);
+      setReviewForm({ client_nom: '', client_email: '', note: 5, commentaire: '', type_evenement: '', date_evenement: '' });
+    } catch (err: any) {
+      if (Platform.OS === 'web') window.alert(err.message || 'Erreur');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const renderStars = (rating: number) => {
     const stars = [];
@@ -312,10 +357,10 @@ export default function DJProfileScreen() {
         )}
 
         {/* Reviews */}
-        {dj.reviews && dj.reviews.length > 0 && (
+        {reviews.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Avis clients</Text>
-            {dj.reviews.map((review: Review) => (
+            <Text style={styles.sectionTitle}>Avis clients ({reviews.length})</Text>
+            {reviews.map((review: any) => (
               <View key={review.review_id} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
                   <Text style={styles.reviewAuthor}>{review.client_nom}</Text>
@@ -336,6 +381,124 @@ export default function DJProfileScreen() {
                 <Text style={styles.reviewText}>{review.commentaire}</Text>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Leave a Review */}
+        {reviewSuccess ? (
+          <View style={styles.section}>
+            <View style={styles.successCard}>
+              <Ionicons name="checkmark-circle" size={40} color="#10B981" />
+              <Text style={styles.successTitle}>Merci pour votre avis !</Text>
+              <Text style={styles.successText}>
+                Votre avis sera publié après validation par le DJ.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.section}>
+            {!showReviewForm ? (
+              <TouchableOpacity
+                style={styles.leaveReviewBtn}
+                onPress={() => setShowReviewForm(true)}
+              >
+                <Ionicons name="star" size={22} color="#FFD700" />
+                <Text style={styles.leaveReviewText}>Laisser un avis</Text>
+                <Ionicons name="chevron-forward" size={20} color="#666" />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.reviewFormContainer}>
+                <Text style={styles.reviewFormTitle}>Votre avis</Text>
+
+                {/* Star Rating */}
+                <View style={styles.ratingRow}>
+                  <Text style={styles.ratingLabel}>Note :</Text>
+                  <View style={styles.starSelector}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <TouchableOpacity
+                        key={star}
+                        onPress={() => setReviewForm({ ...reviewForm, note: star })}
+                        style={styles.starButton}
+                      >
+                        <Ionicons
+                          name={star <= reviewForm.note ? 'star' : 'star-outline'}
+                          size={32}
+                          color="#FFD700"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <TextInput
+                  style={styles.reviewInput}
+                  value={reviewForm.client_nom}
+                  onChangeText={t => setReviewForm({ ...reviewForm, client_nom: t })}
+                  placeholder="Votre nom *"
+                  placeholderTextColor="#666"
+                />
+
+                <TextInput
+                  style={styles.reviewInput}
+                  value={reviewForm.client_email}
+                  onChangeText={t => setReviewForm({ ...reviewForm, client_email: t })}
+                  placeholder="Votre email *"
+                  placeholderTextColor="#666"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+
+                <TextInput
+                  style={styles.reviewInput}
+                  value={reviewForm.type_evenement}
+                  onChangeText={t => setReviewForm({ ...reviewForm, type_evenement: t })}
+                  placeholder="Type d'événement (ex: Mariage, Anniversaire...)"
+                  placeholderTextColor="#666"
+                />
+
+                <TextInput
+                  style={styles.reviewInput}
+                  value={reviewForm.date_evenement}
+                  onChangeText={t => setReviewForm({ ...reviewForm, date_evenement: t })}
+                  placeholder="Date de l'événement (ex: Mars 2025)"
+                  placeholderTextColor="#666"
+                />
+
+                <TextInput
+                  style={[styles.reviewInput, styles.reviewTextArea]}
+                  value={reviewForm.commentaire}
+                  onChangeText={t => setReviewForm({ ...reviewForm, commentaire: t })}
+                  placeholder="Votre avis détaillé... *"
+                  placeholderTextColor="#666"
+                  multiline
+                  numberOfLines={4}
+                />
+
+                <View style={styles.reviewFormActions}>
+                  <TouchableOpacity
+                    style={styles.cancelReviewBtn}
+                    onPress={() => setShowReviewForm(false)}
+                  >
+                    <Text style={styles.cancelReviewText}>Annuler</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.submitReviewBtn, submittingReview && { opacity: 0.6 }]}
+                    onPress={handleSubmitReview}
+                    disabled={submittingReview}
+                  >
+                    {submittingReview ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.submitReviewText}>Envoyer</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.reviewDisclaimer}>
+                  Votre avis sera publié après validation par le DJ.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -582,6 +745,121 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     marginLeft: 10,
+  },
+  leaveReviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FFD700',
+  },
+  leaveReviewText: {
+    flex: 1,
+    color: '#FFD700',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 10,
+  },
+  reviewFormContainer: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  reviewFormTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  ratingLabel: {
+    color: '#ccc',
+    fontSize: 15,
+    marginRight: 12,
+  },
+  starSelector: {
+    flexDirection: 'row',
+  },
+  starButton: {
+    padding: 4,
+  },
+  reviewInput: {
+    backgroundColor: '#111',
+    borderRadius: 10,
+    padding: 12,
+    color: '#fff',
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    marginBottom: 10,
+  },
+  reviewTextArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  reviewFormActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+  },
+  cancelReviewBtn: {
+    flex: 1,
+    backgroundColor: '#222',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+  },
+  cancelReviewText: {
+    color: '#888',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  submitReviewBtn: {
+    flex: 1,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+  },
+  submitReviewText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  reviewDisclaimer: {
+    color: '#666',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  successCard: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  successTitle: {
+    color: '#10B981',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  successText: {
+    color: '#888',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
   },
   reviewCard: {
     backgroundColor: '#1a1a1a',

@@ -273,9 +273,17 @@ export default function DashboardScreen() {
                 <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.actionItem}>
+              <TouchableOpacity
+                style={styles.actionItem}
+                onPress={() => router.push('/manage-reviews')}
+              >
                 <Ionicons name="star" size={24} color="#F59E0B" />
                 <Text style={styles.actionText}>Mes avis clients</Text>
+                {(dashboard?.pending_reviews_count ?? 0) > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationText}>{dashboard.pending_reviews_count}</Text>
+                  </View>
+                )}
                 <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
             </View>
