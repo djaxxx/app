@@ -179,6 +179,22 @@ export default function HomeScreen() {
           />
         </View>
 
+        {/* Map CTA Button */}
+        <TouchableOpacity
+          style={styles.mapCTAButton}
+          onPress={() => router.push('/(tabs)/map')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.mapCTAContent}>
+            <Ionicons name="map" size={24} color="#fff" />
+            <View style={styles.mapCTATextContainer}>
+              <Text style={styles.mapCTATitle}>Carte de France des DJs</Text>
+              <Text style={styles.mapCTASubtitle}>Voir tous les DJs près de chez vous</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#fff" />
+          </View>
+        </TouchableOpacity>
+
         {/* Event Type Filters */}
         <ScrollView
           horizontal
@@ -380,6 +396,33 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     paddingHorizontal: 20,
+  },
+  mapCTAButton: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  mapCTAContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  mapCTATextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  mapCTATitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  mapCTASubtitle: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    marginTop: 2,
   },
   filtersScroll: {
     marginVertical: 16,
