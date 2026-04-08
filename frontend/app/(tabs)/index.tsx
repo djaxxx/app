@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -67,9 +68,20 @@ export default function TabHomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />
         }
       >
-        {/* Header */}
+        {/* Header with Logo */}
         <View style={styles.header}>
-          <Text style={styles.title}>DJ Match France</Text>
+          <Image
+            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/3rs1w5vv_Logo%20vibrant%20de%20DJ%20Match.png' }}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.heroTitle}>
+            Trouvez le DJ parfait{'\n'}
+            <Text style={styles.heroHighlight}>pour votre événement</Text>
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            DJs professionnels vérifiés pour mariages, anniversaires, soirées privées et entreprises
+          </Text>
         </View>
 
         {/* Search */}
@@ -141,8 +153,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  logo: {
+    width: 140,
+    height: 140,
+    marginBottom: 16,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 34,
+  },
+  heroHighlight: {
+    color: '#8B5CF6',
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+    paddingHorizontal: 16,
   },
   title: {
     fontSize: 24,

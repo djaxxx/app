@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -86,9 +87,12 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.logo}>DJ Match</Text>
-            <Text style={styles.subtitle}>France</Text>
+          <View style={styles.headerLeft}>
+            <Image
+              source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/3rs1w5vv_Logo%20vibrant%20de%20DJ%20Match.png' }}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           {isAuthenticated ? (
             <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
@@ -209,7 +213,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 12,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 16,
   },
   logo: {
     fontSize: 28,
