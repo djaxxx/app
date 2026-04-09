@@ -218,24 +218,66 @@ export default function DashboardScreen() {
           <>
             {/* Trial Banner */}
             {dashboard?.is_trial ? (
-              <View style={styles.trialBanner}>
-                <View style={styles.trialBannerIcon}>
-                  <Ionicons name="gift-outline" size={24} color="#8B5CF6" />
-                </View>
-                <View style={styles.trialBannerContent}>
-                  <Text style={styles.trialBannerTitle}>Essai gratuit en cours</Text>
-                  <Text style={styles.trialBannerDays}>
-                    {dashboard.trial_days_remaining > 1
-                      ? `${dashboard.trial_days_remaining} jours restants`
-                      : dashboard.trial_days_remaining === 1
-                      ? '1 jour restant'
-                      : "Dernier jour d'essai !"}
-                  </Text>
-                  <Text style={styles.trialBannerSubtext}>
-                    Votre profil est visible gratuitement pendant 15 jours
-                  </Text>
-                </View>
-              </View>
+              <>
+                {/* Urgent warning for last 5 days */}
+                {dashboard.trial_days_remaining <= 5 ? (
+                  <View style={styles.trialUrgentBanner}>
+                    <View style={styles.trialUrgentTop}>
+                      <Ionicons name="warning" size={24} color="#F59E0B" />
+                      <Text style={styles.trialUrgentTitle}>
+                        {dashboard.trial_days_remaining <= 1
+                          ? "Dernier jour d'essai !"
+                          : dashboard.trial_days_remaining <= 3
+                          ? `Plus que ${dashboard.trial_days_remaining} jours !`
+                          : `${dashboard.trial_days_remaining} jours restants`}
+                      </Text>
+                    </View>
+                    <Text style={styles.trialUrgentMessage}>
+                      Votre essai gratuit se termine bientot. Choisissez votre forfait maintenant pour rester visible et ne perdre aucune demande client.
+                    </Text>
+                    <View style={styles.trialUrgentPlans}>
+                      <TouchableOpacity
+                        style={styles.trialUrgentPlanBtn}
+                        onPress={() => {
+                          setSelectedPlan('monthly');
+                          handleSubscribe('monthly');
+                        }}
+                      >
+                        <Text style={styles.trialUrgentPlanPrice}>8€/mois</Text>
+                        <Text style={styles.trialUrgentPlanLabel}>Mensuel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.trialUrgentPlanBtn, styles.trialUrgentPlanBtnBest]}
+                        onPress={() => {
+                          setSelectedPlan('annual');
+                          handleSubscribe('annual');
+                        }}
+                      >
+                        <View style={styles.trialUrgentBestBadge}>
+                          <Text style={styles.trialUrgentBestBadgeText}>-17%</Text>
+                        </View>
+                        <Text style={styles.trialUrgentPlanPrice}>80€/an</Text>
+                        <Text style={styles.trialUrgentPlanLabel}>Meilleure offre</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.trialBanner}>
+                    <View style={styles.trialBannerIcon}>
+                      <Ionicons name="gift-outline" size={24} color="#8B5CF6" />
+                    </View>
+                    <View style={styles.trialBannerContent}>
+                      <Text style={styles.trialBannerTitle}>Essai gratuit en cours</Text>
+                      <Text style={styles.trialBannerDays}>
+                        {dashboard.trial_days_remaining} jours restants
+                      </Text>
+                      <Text style={styles.trialBannerSubtext}>
+                        Votre profil est visible gratuitement pendant 15 jours
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
             ) : (
               <View style={styles.activeSubBanner}>
                 <Ionicons name="checkmark-circle" size={20} color="#10B981" />
@@ -766,6 +808,74 @@ const styles = StyleSheet.create({
   },
   trialBannerSubtext: {
     color: '#888',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  trialUrgentBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    marginHorizontal: 20,
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    marginBottom: 8,
+  },
+  trialUrgentTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  trialUrgentTitle: {
+    color: '#F59E0B',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  trialUrgentMessage: {
+    color: '#ccc',
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 16,
+  },
+  trialUrgentPlans: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  trialUrgentPlanBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  trialUrgentPlanBtnBest: {
+    backgroundColor: 'rgba(139, 92, 246, 0.25)',
+    borderColor: '#8B5CF6',
+    borderWidth: 2,
+  },
+  trialUrgentBestBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 10,
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  trialUrgentBestBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  trialUrgentPlanPrice: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  trialUrgentPlanLabel: {
+    color: '#aaa',
     fontSize: 12,
     marginTop: 2,
   },
