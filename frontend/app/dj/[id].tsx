@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { api } from '../../src/services/api';
 import { resolveImageUrl } from '../../src/utils/imageUrl';
 import { Button } from '../../src/components/Button';
@@ -105,7 +106,7 @@ export default function DJProfileScreen() {
     return stars;
   };
 
-  const openSocialLink = (url: string, platform: string) => {
+  const openSocialLink = async (url: string, platform: string) => {
     let fullUrl = url;
     if (!url.startsWith('http')) {
       switch (platform) {
@@ -120,7 +121,7 @@ export default function DJProfileScreen() {
           break;
       }
     }
-    Linking.openURL(fullUrl);
+    await WebBrowser.openBrowserAsync(fullUrl);
   };
 
   if (loading) {
@@ -328,7 +329,7 @@ export default function DJProfileScreen() {
               <TouchableOpacity
                 key={`video-${index}`}
                 style={styles.videoItem}
-                onPress={() => Linking.openURL(video)}
+                onPress={() => WebBrowser.openBrowserAsync(video)}
               >
                 <Ionicons name="play-circle" size={32} color="#8B5CF6" />
                 <Text style={styles.videoText} numberOfLines={1}>{video}</Text>
