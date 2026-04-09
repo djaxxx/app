@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request
 from typing import Optional
 from datetime import datetime, timezone
 
-from database import db
+from database import db, ADMIN_EMAIL
 from auth import require_auth, require_dj
 from models import DJProfileCreate, DJProfileUpdate, SiretVerificationRequest
 from utils import validate_minimum_tarif, calculate_profile_completion, check_badge_verification, convert_images_to_files
@@ -13,6 +13,11 @@ from france_geo import (
 )
 
 router = APIRouter()
+
+
+def is_admin_user(user_data: dict) -> bool:
+    """Check if the user is the admin"""
+    return bool(ADMIN_EMAIL) and user_data.get("email", "").lower() == ADMIN_EMAIL.lower()
 
 
 @router.post("/dj/register")
@@ -112,24 +117,45 @@ async def get_my_dj_profile(request: Request):
 
 @router.get("/dj/dashboard")
 async def get_dj_dashboard(request: Request):
-    """Get DJ dashboard statistics"""
+    """Get DJ dashboard statistics - Admin never locked"""
     user_data = await require_dj(request)
     profile = user_data["dj_profile"]
     user_id = user_data["user_id"]
     subscription_status = profile.get("subscription_status", "inactive")
+    admin = is_admin_user(user_data)
+
+    # Admin override: always active, never locked
+    if admin:
+        subscription_status = "active"
+        # Auto-fix admin subscription and boost in DB if needed
+        update_fields = {}
+        if profile.get("subscription_status") != "active":
+            update_fields["subscription_status"] = "active"
+            update_fields["subscription_plan"] = "admin_permanent"
+            update_fields["is_active"] = True
+        if not profile.get("boost_active") or profile.get("boost_active") is False:
+            update_fields["boost_active"] = "Permanent"
+            update_fields["boost_plan"] = "admin_permanent"
+        if update_fields:
+            await db.dj_profiles.update_one(
+                {"user_id": user_id},
+                {"$set": update_fields}
+            )
+
     base_response = {
         "subscription_status": subscription_status,
-        "subscription_plan": profile.get("subscription_plan"),
+        "subscription_plan": profile.get("subscription_plan") if not admin else "admin_permanent",
         "subscription_end_date": profile.get("subscription_end_date"),
         "profil_complete_percent": profile.get("profil_complete_percent", 0),
         "badge_verifie": profile.get("badge_verifie", False),
-        "is_locked": subscription_status != "active",
+        "is_locked": False if admin else (subscription_status != "active"),
+        "is_admin": admin,
     }
-    if subscription_status != "active":
+    if not admin and subscription_status != "active":
         base_response.update({
             "nombre_vues": 0, "nombre_demandes": 0, "demandes_non_lues": 0,
             "note_moyenne": 0, "nombre_avis": 0, "recent_reviews": [],
-            "lock_message": "Votre profil est masqu\u00e9. Activez votre abonnement pour \u00eatre visible sur la plateforme.",
+            "lock_message": "Votre profil est masque. Activez votre abonnement pour etre visible sur la plateforme.",
         })
         return base_response
     requests_count = await db.contact_requests.count_documents({"dj_user_id": user_id})

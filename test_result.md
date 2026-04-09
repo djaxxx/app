@@ -339,10 +339,55 @@ backend:
         agent: "testing"
         comment: "✅ Smart Geographic Search FULLY WORKING! All 8 test scenarios passed: 1) Search 'Normandie' → found DJ AS' (region match), 2) Search 'Orne' → found DJ AS' (department match), 3) Search 'La Chapelle' → found DJ AS' (partial city match), 4) Search 'Sarthe' → found DJ AS' (zone_intervention match), 5) Search 'Bretagne' → correctly returned 0 results, 6) All DJs endpoint → found DJ AS' with active subscription, 7) Geo lookup 'La Chapelle-près-Sées' → returned correct region=Normandie, department=Orne, 8) Geo lookup 'Sées' → returned valid region data. Geographic APIs working: /geo/regions returns 18 regions, /geo/departments returns 99 departments. Smart search logic correctly matches ville, zone_intervention, region_name, department_name, region_code, department_code fields."
 
+  - task: "Admin Unlimited Zones Bypass"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/zones.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW: Admin bypass for zone management. If user email matches ADMIN_EMAIL (adrien.sebert@gmail.com), zones are added directly to MongoDB without Stripe checkout. No MAX_DEPARTMENTS limit for admin. New endpoint POST /api/dj/zone/add-all-departments adds all 99+ departments at once (admin only). Extension price shown as 0 for admin."
+      - working: true
+        agent: "testing"
+        comment: "✅ ADMIN UNLIMITED ZONES BYPASS FULLY WORKING! Comprehensive testing completed successfully: 1) GET /api/dj/zone-status correctly returns max_departments=999, extension_price=0, is_admin=true for admin user (adrien.sebert@gmail.com), 2) POST /api/dj/zone/add-department bypasses Stripe checkout for admin - returns admin_bypass=true with no checkout_url, zones added directly to MongoDB, 3) POST /api/dj/zone/add-all-departments admin-only endpoint successfully adds all 99+ French departments at once, 4) GET /api/dj/available-departments returns complete list of all departments. Admin email verification working correctly - admin user identified by ADMIN_EMAIL env variable match. All zone management endpoints functional with proper admin privilege bypass."
+
+  - task: "Admin Permanent Boost Bypass"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/boost.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW: Admin always has permanent boost. GET /api/boost/status returns boost_active='Permanent' for admin, auto-persists in DB. POST /api/boost/create-checkout bypasses Stripe for admin. New endpoint POST /api/boost/activate-admin for direct admin boost activation."
+      - working: true
+        agent: "testing"
+        comment: "✅ ADMIN PERMANENT BOOST BYPASS FULLY WORKING! Comprehensive testing completed successfully: 1) GET /api/boost/status correctly returns boost_active='Permanent', is_admin=true, days_remaining=99999 for admin user, auto-persists permanent boost in database, 2) POST /api/boost/create-checkout bypasses Stripe checkout for admin - returns admin_bypass=true with no checkout_url, activates permanent boost directly, 3) POST /api/boost/activate-admin admin-only endpoint successfully activates permanent boost without payment, returns boost_active='Permanent', 4) Admin boost status automatically maintained in database for search ranking. All boost endpoints functional with proper admin privilege bypass."
+
+  - task: "Admin Dashboard Never Locked"
+    implemented: true
+    working: true
+    file: "/app/backend/routes/djs.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "NEW: GET /api/dj/dashboard auto-fixes admin subscription_status to 'active', is_active to True, boost to 'Permanent' in DB. Dashboard never returns is_locked=true for admin. is_admin flag added to response."
+      - working: true
+        agent: "testing"
+        comment: "✅ ADMIN DASHBOARD NEVER LOCKED FULLY WORKING! Comprehensive testing completed successfully: 1) GET /api/dj/dashboard correctly returns is_locked=false, is_admin=true, subscription_status='active' for admin user, 2) Admin subscription status automatically fixed to 'active' in database if needed, 3) Admin boost status automatically set to 'Permanent' in database, 4) Dashboard never shows lock screen for admin regardless of subscription status, 5) is_admin flag properly included in response for admin identification. Admin dashboard access fully functional with automatic privilege enforcement."
+
   - task: "DJ Boost Sponsorisé System"
     implemented: true
     working: true
-    file: "/app/backend/server.py"
+    file: "/app/backend/routes/boost.py"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -472,11 +517,16 @@ metadata:
   test_sequence: 1
   run_ui: false
 
+  - agent: "main"
+    message: "NEW ADMIN PRIVILEGES IMPLEMENTATION. 3 new features need testing: 1) Admin Unlimited Zones: POST /api/dj/zone/add-department bypasses Stripe for admin (adrien.sebert@gmail.com), adds zones directly to MongoDB. POST /api/dj/zone/add-all-departments adds ALL departments at once (admin only). GET /api/dj/zone-status returns max_departments=999 and extension_price=0 for admin. 2) Admin Permanent Boost: GET /api/boost/status always returns boost_active='Permanent' for admin. POST /api/boost/create-checkout bypasses Stripe for admin. POST /api/boost/activate-admin activates permanent boost (admin only). 3) Admin Dashboard: GET /api/dj/dashboard auto-fixes subscription_status='active' and boost_active='Permanent' in DB for admin. Never returns is_locked=true for admin. Test credentials: admin email is adrien.sebert@gmail.com, login via POST /api/auth/login-email or use existing admin session. Also test that regular (non-admin) users still go through Stripe for zones and boosts."
+
 test_plan:
   current_focus:
-    - "FULL REGRESSION TEST - All endpoints - COMPLETED"
+    - "Admin Unlimited Zones Bypass"
+    - "Admin Permanent Boost Bypass"
+    - "Admin Dashboard Never Locked"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
@@ -510,3 +560,5 @@ agent_communication:
     message: "NEW FEATURE: Admin CRM Contacts endpoints implemented. Complete admin contact management system with filtering, search, stats, and CSV export. Endpoints: GET /api/admin/contacts (list all contacts with filters), GET /api/admin/contacts/stats (segmentation statistics), GET /api/admin/contacts/export-csv (CSV export). Supports filtering by type (dj/client), status (active/inactive for DJs, nouveau/lu for clients), department, and search. Proper admin authentication required. Please test all admin contact endpoints."
   - agent: "testing"
     message: "🎉 ADMIN CRM CONTACTS ENDPOINTS TESTING COMPLETE - 100% SUCCESS! ✅ Comprehensive testing of all 8 admin contact endpoints completed successfully: 1) GET /api/admin/contacts: Successfully lists all contacts (12 total) with proper pagination structure (contacts, total, page, pages), each contact includes required fields (contact_type, id, nom, email, telephone, ville, created_at, source), 2) GET /api/admin/contacts?type=dj: Correctly filters to show only DJ contacts (6 DJs), all returned contacts have contact_type='dj', 3) GET /api/admin/contacts?type=client: Correctly filters to show only client contacts (6 clients), all returned contacts have contact_type='client', 4) GET /api/admin/contacts?status=active: Correctly filters to show only active DJs (2 active), all DJ contacts have subscription_status='active', 5) GET /api/admin/contacts?search=DJ: Search functionality working (5 results for 'DJ' search), 6) GET /api/admin/contacts/stats: Returns proper segmentation statistics with 'djs' section (total: 6, active: 2, inactive: 4, boosted, by_department, by_region) and 'clients' section (total_requests: 8, unread, unique_clients: 6, by_event_type), 7) GET /api/admin/contacts/export-csv: CSV export working with correct Content-Type (text/csv), Content-Disposition (attachment with filename), and proper CSV structure (14 lines with headers), 8) Security: GET /api/admin/contacts without authentication correctly returns 401. Admin authentication system working with email/password login. All admin contact endpoints functional with proper validation, filtering, authentication, and data export capabilities."
+  - agent: "testing"
+    message: "🎯 ADMIN PRIVILEGES TESTING COMPLETE - ALL 3 FEATURES WORKING! ✅ Comprehensive testing of all 3 new admin privilege features completed successfully: 1) ADMIN UNLIMITED ZONES BYPASS: GET /api/dj/zone-status returns max_departments=999, extension_price=0, is_admin=true for admin (adrien.sebert@gmail.com). POST /api/dj/zone/add-department bypasses Stripe checkout, returns admin_bypass=true with no checkout_url. POST /api/dj/zone/add-all-departments admin-only endpoint adds all 99+ departments at once. 2) ADMIN PERMANENT BOOST BYPASS: GET /api/boost/status returns boost_active='Permanent', is_admin=true, days_remaining=99999. POST /api/boost/create-checkout bypasses Stripe, returns admin_bypass=true. POST /api/boost/activate-admin activates permanent boost without payment. 3) ADMIN DASHBOARD NEVER LOCKED: GET /api/dj/dashboard returns is_locked=false, is_admin=true, subscription_status='active'. Admin subscription and boost status auto-fixed in database. All admin features functional with proper email-based admin identification (ADMIN_EMAIL env variable). Admin privileges working correctly while maintaining normal Stripe flow for regular users."

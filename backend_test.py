@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Backend Test Suite for Admin CRM Contacts Endpoints
-Tests the new Admin CRM Contacts endpoints with admin authentication.
+Backend Testing for DJ Match France Admin Privileges
+Tests 3 new admin features:
+1. Admin Unlimited Zones Bypass
+2. Admin Permanent Boost Bypass  
+3. Admin Dashboard Never Locked
 """
 
 import requests
@@ -10,509 +13,429 @@ import sys
 from datetime import datetime
 
 # Configuration
-BACKEND_URL = "https://dj-directory-fr.preview.emergentagent.com/api"
+BASE_URL = "https://dj-directory-fr.preview.emergentagent.com/api"
 ADMIN_EMAIL = "adrien.sebert@gmail.com"
-TEST_PASSWORD = "test123"
-TEST_ADMIN_EMAIL = "test-admin@example.com"  # Use a different email for testing
+ADMIN_PASSWORD = "test123"
+ADMIN_PASSWORD_ALT = "admin123"
+TEST_SIRET = "44306184100047"  # Google France
 
-class AdminContactsTestSuite:
+class TestResults:
     def __init__(self):
-        self.session = requests.Session()
-        self.admin_session_token = None
-        self.test_results = []
+        self.passed = 0
+        self.failed = 0
+        self.errors = []
         
-    def log_test(self, test_name, success, details="", response_data=None):
-        """Log test result"""
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} {test_name}")
-        if details:
-            print(f"   {details}")
-        if response_data and not success:
-            print(f"   Response: {response_data}")
-        print()
-        
-        self.test_results.append({
-            "test": test_name,
-            "success": success,
-            "details": details,
-            "response_data": response_data
-        })
+    def assert_test(self, condition, test_name, error_msg=""):
+        if condition:
+            print(f"✅ {test_name}")
+            self.passed += 1
+        else:
+            print(f"❌ {test_name}: {error_msg}")
+            self.failed += 1
+            self.errors.append(f"{test_name}: {error_msg}")
+            
+    def summary(self):
+        total = self.passed + self.failed
+        print(f"\n{'='*60}")
+        print(f"TEST SUMMARY: {self.passed}/{total} passed")
+        if self.errors:
+            print(f"\nFAILED TESTS:")
+            for error in self.errors:
+                print(f"  - {error}")
+        print(f"{'='*60}")
+        return self.failed == 0
+
+def make_request(method, endpoint, data=None, cookies=None, headers=None):
+    """Make HTTP request with error handling"""
+    url = f"{BASE_URL}{endpoint}"
+    default_headers = {"Content-Type": "application/json"}
+    if headers:
+        default_headers.update(headers)
     
-    def admin_login(self):
-        """Login as admin to get session token"""
-        print("🔐 Admin Authentication")
-        print("=" * 50)
+    try:
+        if method == "GET":
+            response = requests.get(url, cookies=cookies, headers=default_headers)
+        elif method == "POST":
+            response = requests.post(url, json=data, cookies=cookies, headers=default_headers)
+        elif method == "PUT":
+            response = requests.put(url, json=data, cookies=cookies, headers=default_headers)
+        else:
+            raise ValueError(f"Unsupported method: {method}")
+            
+        return response
+    except Exception as e:
+        print(f"❌ Request failed: {method} {endpoint} - {str(e)}")
+        return None
+
+def login_admin():
+    """Login as admin and return session cookies"""
+    print(f"\n🔐 Attempting admin login: {ADMIN_EMAIL}")
+    
+    # Try login first
+    login_data = {"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}
+    response = make_request("POST", "/auth/login-email", login_data)
+    
+    if response and response.status_code == 200:
+        print(f"✅ Admin login successful")
+        return response.cookies
+    
+    print(f"⚠️ Login failed, trying registration with alternate password...")
+    
+    # Try registration with alternate password
+    register_data = {"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD_ALT}
+    response = make_request("POST", "/auth/register-email", register_data)
+    
+    if response and response.status_code == 200:
+        print(f"✅ Admin registration successful")
+        return response.cookies
+    
+    print(f"❌ Both login and registration failed")
+    if response:
+        print(f"Status: {response.status_code}, Response: {response.text}")
+    return None
+
+def create_dj_profile_if_needed(cookies):
+    """Create DJ profile for admin if it doesn't exist"""
+    print(f"\n👤 Checking/Creating DJ profile for admin...")
+    
+    # Check if DJ profile exists
+    response = make_request("GET", "/dj/profile", cookies=cookies)
+    if response and response.status_code == 200:
+        print(f"✅ Admin DJ profile already exists")
+        return True
+    
+    # Create DJ profile
+    dj_data = {
+        "nom": "Admin DJ",
+        "prenom": "Test",
+        "nom_de_scene": "DJ Admin",
+        "siret": TEST_SIRET,
+        "ville": "Paris",
+        "code_postal": "75001",
+        "telephone": "0123456789",
+        "tarif_indicatif": "800-1200€",
+        "types_evenements": ["mariage", "soiree_privee"],
+        "zone_intervention": ["Paris", "région parisienne"],
+        "description": "DJ Admin pour tests"
+    }
+    
+    response = make_request("POST", "/dj/register", dj_data, cookies=cookies)
+    if response and response.status_code == 200:
+        print(f"✅ Admin DJ profile created successfully")
+        return True
+    else:
+        print(f"❌ Failed to create DJ profile")
+        if response:
+            print(f"Status: {response.status_code}, Response: {response.text}")
+        return False
+
+def create_regular_user():
+    """Create a regular (non-admin) user for comparison tests"""
+    print(f"\n👤 Creating regular user for comparison...")
+    
+    regular_email = f"test-user-{datetime.now().strftime('%H%M%S')}@example.com"
+    register_data = {"email": regular_email, "password": "test123"}
+    
+    response = make_request("POST", "/auth/register-email", register_data)
+    if response and response.status_code == 200:
+        print(f"✅ Regular user created: {regular_email}")
         
-        # First, try to create a test admin user and update the database
-        if not self.setup_test_admin():
-            return False
-        
-        # Try to login with admin email
-        login_data = {
-            "email": ADMIN_EMAIL,
-            "password": TEST_PASSWORD
+        # Create DJ profile for regular user
+        dj_data = {
+            "nom": "Regular DJ",
+            "prenom": "Test",
+            "nom_de_scene": "DJ Regular",
+            "siret": TEST_SIRET,
+            "ville": "Lyon",
+            "code_postal": "69001",
+            "telephone": "0123456789",
+            "tarif_indicatif": "800-1000€",
+            "types_evenements": ["mariage"],
+            "zone_intervention": ["Lyon"],
+            "description": "Regular DJ for tests"
         }
         
-        try:
-            response = self.session.post(f"{BACKEND_URL}/auth/login-email", json=login_data)
-            
-            if response.status_code == 200:
-                # Check if session cookie is set
-                session_token = None
-                for cookie in self.session.cookies:
-                    if cookie.name == "session_token":
-                        session_token = cookie.value
-                        break
-                
-                if session_token:
-                    self.admin_session_token = session_token
-                    self.log_test("Admin Login", True, f"Successfully logged in as {ADMIN_EMAIL}")
-                    return True
-                else:
-                    self.log_test("Admin Login", False, "No session token received")
-                    return False
-            else:
-                self.log_test("Admin Login", False, f"Login failed: {response.status_code} - {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Login", False, f"Login error: {str(e)}")
-            return False
+        dj_response = make_request("POST", "/dj/register", dj_data, cookies=response.cookies)
+        if dj_response and dj_response.status_code == 200:
+            print(f"✅ Regular DJ profile created")
+            return response.cookies, regular_email
+        else:
+            print(f"❌ Failed to create regular DJ profile")
+            return response.cookies, regular_email
+    else:
+        print(f"❌ Failed to create regular user")
+        return None, None
+
+def test_admin_unlimited_zones(admin_cookies, results):
+    """Test Admin Unlimited Zones Bypass feature"""
+    print(f"\n🌍 TESTING ADMIN UNLIMITED ZONES BYPASS")
+    print(f"{'='*50}")
     
-    def setup_test_admin(self):
-        """Setup test admin user by updating existing admin user with password"""
-        try:
-            # Create a test admin user with a different email first
-            register_data = {
-                "email": TEST_ADMIN_EMAIL,
-                "password": TEST_PASSWORD,
-                "name": "Test Admin"
-            }
-            
-            response = self.session.post(f"{BACKEND_URL}/auth/register-email", json=register_data)
-            
-            if response.status_code == 200:
-                # Now update the database to change this user's email to the admin email
-                import asyncio
-                from backend.database import db
-                import bcrypt
-                
-                async def update_admin():
-                    # First, delete any existing admin user
-                    await db.users.delete_many({"email": ADMIN_EMAIL})
-                    
-                    # Create new admin user with password
-                    hashed = bcrypt.hashpw(TEST_PASSWORD.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-                    import uuid
-                    from datetime import datetime, timezone
-                    
-                    user_id = f"user_{uuid.uuid4().hex[:12]}"
-                    await db.users.insert_one({
-                        "user_id": user_id,
-                        "email": ADMIN_EMAIL,
-                        "name": "Test Admin",
-                        "password_hash": hashed,
-                        "auth_method": "email",
-                        "picture": None,
-                        "created_at": datetime.now(timezone.utc),
-                        "updated_at": datetime.now(timezone.utc),
-                    })
-                    
-                    # Clean up test admin user
-                    await db.users.delete_many({"email": TEST_ADMIN_EMAIL})
-                    
-                    return True
-                
-                result = asyncio.run(update_admin())
-                if result:
-                    self.log_test("Admin Setup", True, f"Created admin user with email auth: {ADMIN_EMAIL}")
-                    return True
-                else:
-                    self.log_test("Admin Setup", False, "Failed to update database")
-                    return False
-            else:
-                self.log_test("Admin Setup", False, f"Failed to create test user: {response.status_code}")
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Setup", False, f"Setup error: {str(e)}")
-            return False
+    # Test 1: GET /api/dj/zone-status should return admin privileges
+    response = make_request("GET", "/dj/zone-status", cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("max_departments") == 999,
+            "Zone status shows max_departments=999 for admin",
+            f"Expected 999, got {data.get('max_departments')}"
+        )
+        results.assert_test(
+            data.get("extension_price") == 0,
+            "Zone status shows extension_price=0 for admin",
+            f"Expected 0, got {data.get('extension_price')}"
+        )
+        results.assert_test(
+            data.get("is_admin") == True,
+            "Zone status shows is_admin=true",
+            f"Expected True, got {data.get('is_admin')}"
+        )
+    else:
+        results.assert_test(False, "GET /api/dj/zone-status", f"Request failed: {response.status_code if response else 'No response'}")
     
-    def admin_register(self):
-        """Register admin account if it doesn't exist"""
-        register_data = {
-            "email": ADMIN_EMAIL,
-            "password": TEST_PASSWORD,
-            "name": "Admin User"
-        }
-        
-        try:
-            response = self.session.post(f"{BACKEND_URL}/auth/register-email", json=register_data)
-            
-            if response.status_code == 200:
-                # Check if session cookie is set
-                session_token = None
-                for cookie in self.session.cookies:
-                    if cookie.name == "session_token":
-                        session_token = cookie.value
-                        break
-                
-                if session_token:
-                    self.admin_session_token = session_token
-                    self.log_test("Admin Registration", True, f"Successfully registered and logged in as {ADMIN_EMAIL}")
-                    return True
-                else:
-                    self.log_test("Admin Registration", False, "No session token received after registration")
-                    return False
-            else:
-                self.log_test("Admin Registration", False, f"Registration failed: {response.status_code} - {response.text}")
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Registration", False, f"Registration error: {str(e)}")
-            return False
+    # Test 2: POST /api/dj/zone/add-department should bypass Stripe for admin
+    add_dept_data = {"department_code": "75"}  # Paris
+    response = make_request("POST", "/dj/zone/add-department", add_dept_data, cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("admin_bypass") == True,
+            "Add department returns admin_bypass=true",
+            f"Expected True, got {data.get('admin_bypass')}"
+        )
+        results.assert_test(
+            "checkout_url" not in data,
+            "Add department has no checkout_url for admin",
+            "checkout_url should not be present for admin"
+        )
+    else:
+        results.assert_test(False, "POST /api/dj/zone/add-department (75)", f"Request failed: {response.status_code if response else 'No response'}")
     
-    def test_admin_contacts_list(self):
-        """Test GET /api/admin/contacts - List all contacts"""
-        print("📋 Testing Admin Contacts List")
-        print("=" * 50)
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/admin/contacts")
-            
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Verify response structure
-                required_fields = ["contacts", "total", "page", "pages"]
-                missing_fields = [field for field in required_fields if field not in data]
-                
-                if missing_fields:
-                    self.log_test("Admin Contacts List - Structure", False, 
-                                f"Missing fields: {missing_fields}", data)
-                    return False
-                
-                # Verify contacts array structure
-                contacts = data.get("contacts", [])
-                if contacts:
-                    contact = contacts[0]
-                    required_contact_fields = ["contact_type", "id", "nom", "email", "telephone", "ville", "created_at", "source"]
-                    missing_contact_fields = [field for field in required_contact_fields if field not in contact]
-                    
-                    if missing_contact_fields:
-                        self.log_test("Admin Contacts List - Contact Structure", False,
-                                    f"Missing contact fields: {missing_contact_fields}", contact)
-                        return False
-                
-                self.log_test("Admin Contacts List", True, 
-                            f"Found {data['total']} contacts, page {data['page']} of {data['pages']}")
-                return True
-            else:
-                self.log_test("Admin Contacts List", False, 
-                            f"HTTP {response.status_code}", response.text)
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts List", False, f"Error: {str(e)}")
-            return False
+    # Test 3: Add another department
+    add_dept_data = {"department_code": "13"}  # Bouches-du-Rhône
+    response = make_request("POST", "/dj/zone/add-department", add_dept_data, cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("admin_bypass") == True,
+            "Add second department also bypasses Stripe",
+            f"Expected admin_bypass=True, got {data.get('admin_bypass')}"
+        )
+    else:
+        results.assert_test(False, "POST /api/dj/zone/add-department (13)", f"Request failed: {response.status_code if response else 'No response'}")
     
-    def test_admin_contacts_filter_dj(self):
-        """Test GET /api/admin/contacts?type=dj - Filter by DJ only"""
-        print("🎧 Testing Admin Contacts Filter - DJ Only")
-        print("=" * 50)
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/admin/contacts?type=dj")
-            
-            if response.status_code == 200:
-                data = response.json()
-                contacts = data.get("contacts", [])
-                
-                # Verify all contacts are DJs
-                non_dj_contacts = [c for c in contacts if c.get("contact_type") != "dj"]
-                
-                if non_dj_contacts:
-                    self.log_test("Admin Contacts Filter DJ", False,
-                                f"Found {len(non_dj_contacts)} non-DJ contacts in DJ filter")
-                    return False
-                
-                self.log_test("Admin Contacts Filter DJ", True,
-                            f"Found {len(contacts)} DJ contacts only")
-                return True
-            else:
-                self.log_test("Admin Contacts Filter DJ", False,
-                            f"HTTP {response.status_code}", response.text)
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts Filter DJ", False, f"Error: {str(e)}")
-            return False
+    # Test 4: POST /api/dj/zone/add-all-departments (admin only)
+    response = make_request("POST", "/dj/zone/add-all-departments", {}, cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("total", 0) > 90,
+            "Add all departments adds 90+ departments",
+            f"Expected >90 departments, got {data.get('total')}"
+        )
+    else:
+        results.assert_test(False, "POST /api/dj/zone/add-all-departments", f"Request failed: {response.status_code if response else 'No response'}")
     
-    def test_admin_contacts_filter_client(self):
-        """Test GET /api/admin/contacts?type=client - Filter by client only"""
-        print("👥 Testing Admin Contacts Filter - Client Only")
-        print("=" * 50)
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/admin/contacts?type=client")
-            
-            if response.status_code == 200:
-                data = response.json()
-                contacts = data.get("contacts", [])
-                
-                # Verify all contacts are clients
-                non_client_contacts = [c for c in contacts if c.get("contact_type") != "client"]
-                
-                if non_client_contacts:
-                    self.log_test("Admin Contacts Filter Client", False,
-                                f"Found {len(non_client_contacts)} non-client contacts in client filter")
-                    return False
-                
-                self.log_test("Admin Contacts Filter Client", True,
-                            f"Found {len(contacts)} client contacts only")
-                return True
-            else:
-                self.log_test("Admin Contacts Filter Client", False,
-                            f"HTTP {response.status_code}", response.text)
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts Filter Client", False, f"Error: {str(e)}")
-            return False
+    # Test 5: GET /api/dj/available-departments should return all departments
+    response = make_request("GET", "/dj/available-departments", cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            len(data) > 90,
+            "Available departments returns 90+ departments",
+            f"Expected >90 departments, got {len(data)}"
+        )
+    else:
+        results.assert_test(False, "GET /api/dj/available-departments", f"Request failed: {response.status_code if response else 'No response'}")
+
+def test_admin_permanent_boost(admin_cookies, results):
+    """Test Admin Permanent Boost Bypass feature"""
+    print(f"\n⚡ TESTING ADMIN PERMANENT BOOST BYPASS")
+    print(f"{'='*50}")
     
-    def test_admin_contacts_filter_active(self):
-        """Test GET /api/admin/contacts?status=active - Filter active DJs only"""
-        print("🟢 Testing Admin Contacts Filter - Active DJs")
-        print("=" * 50)
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/admin/contacts?status=active")
-            
-            if response.status_code == 200:
-                data = response.json()
-                contacts = data.get("contacts", [])
-                
-                # Verify all DJ contacts have active subscription
-                dj_contacts = [c for c in contacts if c.get("contact_type") == "dj"]
-                inactive_djs = [c for c in dj_contacts if c.get("subscription_status") != "active"]
-                
-                if inactive_djs:
-                    self.log_test("Admin Contacts Filter Active", False,
-                                f"Found {len(inactive_djs)} inactive DJs in active filter")
-                    return False
-                
-                self.log_test("Admin Contacts Filter Active", True,
-                            f"Found {len(dj_contacts)} active DJ contacts")
-                return True
-            else:
-                self.log_test("Admin Contacts Filter Active", False,
-                            f"HTTP {response.status_code}", response.text)
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts Filter Active", False, f"Error: {str(e)}")
-            return False
+    # Test 1: GET /api/boost/status should return permanent boost for admin
+    response = make_request("GET", "/boost/status", cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("boost_active") == "Permanent",
+            "Boost status shows boost_active='Permanent' for admin",
+            f"Expected 'Permanent', got {data.get('boost_active')}"
+        )
+        results.assert_test(
+            data.get("is_admin") == True,
+            "Boost status shows is_admin=true",
+            f"Expected True, got {data.get('is_admin')}"
+        )
+        results.assert_test(
+            data.get("days_remaining") == 99999,
+            "Boost status shows days_remaining=99999",
+            f"Expected 99999, got {data.get('days_remaining')}"
+        )
+    else:
+        results.assert_test(False, "GET /api/boost/status", f"Request failed: {response.status_code if response else 'No response'}")
     
-    def test_admin_contacts_search(self):
-        """Test GET /api/admin/contacts?search=DJ - Search functionality"""
-        print("🔍 Testing Admin Contacts Search")
-        print("=" * 50)
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/admin/contacts?search=DJ")
-            
-            if response.status_code == 200:
-                data = response.json()
-                contacts = data.get("contacts", [])
-                
-                self.log_test("Admin Contacts Search", True,
-                            f"Search for 'DJ' returned {len(contacts)} contacts")
-                return True
-            else:
-                self.log_test("Admin Contacts Search", False,
-                            f"HTTP {response.status_code}", response.text)
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts Search", False, f"Error: {str(e)}")
-            return False
+    # Test 2: POST /api/boost/create-checkout should bypass Stripe for admin
+    checkout_data = {"plan": "1_week", "origin_url": "https://test.com"}
+    response = make_request("POST", "/boost/create-checkout", checkout_data, cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("admin_bypass") == True,
+            "Boost checkout returns admin_bypass=true",
+            f"Expected True, got {data.get('admin_bypass')}"
+        )
+        results.assert_test(
+            "checkout_url" not in data,
+            "Boost checkout has no checkout_url for admin",
+            "checkout_url should not be present for admin"
+        )
+    else:
+        results.assert_test(False, "POST /api/boost/create-checkout", f"Request failed: {response.status_code if response else 'No response'}")
     
-    def test_admin_contacts_stats(self):
-        """Test GET /api/admin/contacts/stats - Segmentation stats"""
-        print("📊 Testing Admin Contacts Stats")
-        print("=" * 50)
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/admin/contacts/stats")
-            
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Verify response structure
-                if "djs" not in data or "clients" not in data:
-                    self.log_test("Admin Contacts Stats", False,
-                                "Missing 'djs' or 'clients' sections", data)
-                    return False
-                
-                # Verify DJs section
-                djs = data["djs"]
-                required_dj_fields = ["total", "active", "inactive", "boosted", "by_department", "by_region"]
-                missing_dj_fields = [field for field in required_dj_fields if field not in djs]
-                
-                if missing_dj_fields:
-                    self.log_test("Admin Contacts Stats - DJs", False,
-                                f"Missing DJ fields: {missing_dj_fields}", djs)
-                    return False
-                
-                # Verify Clients section
-                clients = data["clients"]
-                required_client_fields = ["total_requests", "unread", "unique_clients", "by_event_type"]
-                missing_client_fields = [field for field in required_client_fields if field not in clients]
-                
-                if missing_client_fields:
-                    self.log_test("Admin Contacts Stats - Clients", False,
-                                f"Missing client fields: {missing_client_fields}", clients)
-                    return False
-                
-                self.log_test("Admin Contacts Stats", True,
-                            f"DJs: {djs['total']} total ({djs['active']} active), Clients: {clients['total_requests']} requests ({clients['unique_clients']} unique)")
-                return True
-            else:
-                self.log_test("Admin Contacts Stats", False,
-                            f"HTTP {response.status_code}", response.text)
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts Stats", False, f"Error: {str(e)}")
-            return False
+    # Test 3: POST /api/boost/activate-admin should work for admin
+    response = make_request("POST", "/boost/activate-admin", {}, cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("boost_active") == "Permanent",
+            "Admin boost activation returns permanent boost",
+            f"Expected 'Permanent', got {data.get('boost_active')}"
+        )
+    else:
+        results.assert_test(False, "POST /api/boost/activate-admin", f"Request failed: {response.status_code if response else 'No response'}")
+
+def test_admin_dashboard_never_locked(admin_cookies, results):
+    """Test Admin Dashboard Never Locked feature"""
+    print(f"\n🔓 TESTING ADMIN DASHBOARD NEVER LOCKED")
+    print(f"{'='*50}")
     
-    def test_admin_contacts_export_csv(self):
-        """Test GET /api/admin/contacts/export-csv - CSV export"""
-        print("📄 Testing Admin Contacts CSV Export")
-        print("=" * 50)
-        
-        try:
-            response = self.session.get(f"{BACKEND_URL}/admin/contacts/export-csv")
-            
-            if response.status_code == 200:
-                # Verify Content-Type
-                content_type = response.headers.get("content-type", "")
-                if "text/csv" not in content_type:
-                    self.log_test("Admin Contacts CSV Export - Content-Type", False,
-                                f"Expected text/csv, got {content_type}")
-                    return False
-                
-                # Verify Content-Disposition
-                content_disposition = response.headers.get("content-disposition", "")
-                if "attachment" not in content_disposition or "filename" not in content_disposition:
-                    self.log_test("Admin Contacts CSV Export - Content-Disposition", False,
-                                f"Invalid Content-Disposition: {content_disposition}")
-                    return False
-                
-                # Verify CSV content
-                csv_content = response.text
-                lines = csv_content.split('\n')
-                if len(lines) < 1:
-                    self.log_test("Admin Contacts CSV Export - Content", False,
-                                "Empty CSV content")
-                    return False
-                
-                # Check header
-                header = lines[0]
-                if "Type" not in header or "Email" not in header:
-                    self.log_test("Admin Contacts CSV Export - Header", False,
-                                f"Invalid CSV header: {header}")
-                    return False
-                
-                self.log_test("Admin Contacts CSV Export", True,
-                            f"CSV export successful, {len(lines)} lines, filename in headers")
-                return True
-            else:
-                self.log_test("Admin Contacts CSV Export", False,
-                            f"HTTP {response.status_code}", response.text)
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts CSV Export", False, f"Error: {str(e)}")
-            return False
+    # Test 1: GET /api/dj/dashboard should never be locked for admin
+    response = make_request("GET", "/dj/dashboard", cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("is_locked") == False,
+            "Dashboard shows is_locked=false for admin",
+            f"Expected False, got {data.get('is_locked')}"
+        )
+        results.assert_test(
+            data.get("is_admin") == True,
+            "Dashboard shows is_admin=true",
+            f"Expected True, got {data.get('is_admin')}"
+        )
+        results.assert_test(
+            data.get("subscription_status") == "active",
+            "Dashboard shows subscription_status='active' for admin",
+            f"Expected 'active', got {data.get('subscription_status')}"
+        )
+    else:
+        results.assert_test(False, "GET /api/dj/dashboard", f"Request failed: {response.status_code if response else 'No response'}")
+
+def test_regular_user_normal_flow(regular_cookies, results):
+    """Test that regular users still get normal Stripe checkout flow"""
+    print(f"\n👤 TESTING REGULAR USER NORMAL FLOW")
+    print(f"{'='*50}")
     
-    def test_admin_contacts_security(self):
-        """Test security - GET /api/admin/contacts without auth should return 401"""
-        print("🔒 Testing Admin Contacts Security")
-        print("=" * 50)
-        
-        try:
-            # Create a new session without authentication
-            unauthenticated_session = requests.Session()
-            response = unauthenticated_session.get(f"{BACKEND_URL}/admin/contacts")
-            
-            if response.status_code == 401:
-                self.log_test("Admin Contacts Security", True,
-                            "Correctly returned 401 for unauthenticated request")
-                return True
-            else:
-                self.log_test("Admin Contacts Security", False,
-                            f"Expected 401, got {response.status_code}")
-                return False
-                
-        except Exception as e:
-            self.log_test("Admin Contacts Security", False, f"Error: {str(e)}")
-            return False
+    if not regular_cookies:
+        results.assert_test(False, "Regular user tests", "No regular user cookies available")
+        return
     
-    def run_all_tests(self):
-        """Run all admin contacts tests"""
-        print("🚀 Starting Admin CRM Contacts Endpoint Tests")
-        print("=" * 60)
-        print(f"Backend URL: {BACKEND_URL}")
-        print(f"Admin Email: {ADMIN_EMAIL}")
-        print(f"Test Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("=" * 60)
-        print()
-        
-        # Step 1: Admin Authentication
-        if not self.admin_login():
-            print("❌ Admin authentication failed. Cannot proceed with admin tests.")
-            return False
-        
-        # Step 2: Run all admin contacts tests
-        tests = [
-            self.test_admin_contacts_list,
-            self.test_admin_contacts_filter_dj,
-            self.test_admin_contacts_filter_client,
-            self.test_admin_contacts_filter_active,
-            self.test_admin_contacts_search,
-            self.test_admin_contacts_stats,
-            self.test_admin_contacts_export_csv,
-            self.test_admin_contacts_security,
-        ]
-        
-        passed = 0
-        total = len(tests)
-        
-        for test in tests:
-            if test():
-                passed += 1
-        
-        # Summary
-        print("=" * 60)
-        print("🏁 TEST SUMMARY")
-        print("=" * 60)
-        print(f"Total Tests: {total}")
-        print(f"Passed: {passed}")
-        print(f"Failed: {total - passed}")
-        print(f"Success Rate: {(passed/total)*100:.1f}%")
-        print()
-        
-        # Detailed results
-        for result in self.test_results:
-            status = "✅" if result["success"] else "❌"
-            print(f"{status} {result['test']}")
-            if result["details"]:
-                print(f"   {result['details']}")
-        
-        return passed == total
+    # Test 1: Regular user zone addition should return checkout_url
+    add_dept_data = {"department_code": "75", "origin_url": "https://test.com"}
+    response = make_request("POST", "/dj/zone/add-department", add_dept_data, cookies=regular_cookies)
+    if response:
+        if response.status_code == 200:
+            data = response.json()
+            results.assert_test(
+                "checkout_url" in data,
+                "Regular user gets checkout_url for zone addition",
+                "checkout_url should be present for regular users"
+            )
+            results.assert_test(
+                data.get("admin_bypass") != True,
+                "Regular user does not get admin_bypass",
+                f"admin_bypass should not be True, got {data.get('admin_bypass')}"
+            )
+        else:
+            # Could be 400 if max departments reached, that's also valid
+            results.assert_test(
+                response.status_code in [200, 400],
+                "Regular user zone addition returns valid response",
+                f"Expected 200 or 400, got {response.status_code}"
+            )
+    else:
+        results.assert_test(False, "Regular user zone addition", "Request failed")
+    
+    # Test 2: Regular user boost checkout should return checkout_url
+    checkout_data = {"plan": "1_week", "origin_url": "https://test.com"}
+    response = make_request("POST", "/boost/create-checkout", checkout_data, cookies=regular_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            "checkout_url" in data,
+            "Regular user gets checkout_url for boost",
+            "checkout_url should be present for regular users"
+        )
+        results.assert_test(
+            data.get("admin_bypass") != True,
+            "Regular user does not get boost admin_bypass",
+            f"admin_bypass should not be True, got {data.get('admin_bypass')}"
+        )
+    else:
+        results.assert_test(False, "Regular user boost checkout", f"Request failed: {response.status_code if response else 'No response'}")
+    
+    # Test 3: Regular user cannot access admin boost activation
+    response = make_request("POST", "/boost/activate-admin", {}, cookies=regular_cookies)
+    results.assert_test(
+        response and response.status_code == 403,
+        "Regular user gets 403 for admin boost activation",
+        f"Expected 403, got {response.status_code if response else 'No response'}"
+    )
+    
+    # Test 4: Regular user cannot access add-all-departments
+    response = make_request("POST", "/dj/zone/add-all-departments", {}, cookies=regular_cookies)
+    results.assert_test(
+        response and response.status_code == 403,
+        "Regular user gets 403 for add-all-departments",
+        f"Expected 403, got {response.status_code if response else 'No response'}"
+    )
+
+def main():
+    """Main test execution"""
+    print(f"🧪 DJ MATCH FRANCE - ADMIN PRIVILEGES TESTING")
+    print(f"Backend URL: {BASE_URL}")
+    print(f"Admin Email: {ADMIN_EMAIL}")
+    print(f"{'='*60}")
+    
+    results = TestResults()
+    
+    # Step 1: Login as admin
+    admin_cookies = login_admin()
+    if not admin_cookies:
+        print(f"❌ CRITICAL: Cannot login as admin. Aborting tests.")
+        return False
+    
+    # Step 2: Create DJ profile if needed
+    if not create_dj_profile_if_needed(admin_cookies):
+        print(f"❌ CRITICAL: Cannot create admin DJ profile. Aborting tests.")
+        return False
+    
+    # Step 3: Create regular user for comparison
+    regular_cookies, regular_email = create_regular_user()
+    
+    # Step 4: Test admin features
+    test_admin_unlimited_zones(admin_cookies, results)
+    test_admin_permanent_boost(admin_cookies, results)
+    test_admin_dashboard_never_locked(admin_cookies, results)
+    
+    # Step 5: Test regular user flow
+    test_regular_user_normal_flow(regular_cookies, results)
+    
+    # Step 6: Summary
+    success = results.summary()
+    return success
 
 if __name__ == "__main__":
-    test_suite = AdminContactsTestSuite()
-    success = test_suite.run_all_tests()
+    success = main()
     sys.exit(0 if success else 1)
