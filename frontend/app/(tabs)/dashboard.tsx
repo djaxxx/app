@@ -9,15 +9,13 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { api } from '../../src/services/api';
 import { Button } from '../../src/components/Button';
 
 export default function DashboardScreen() {
-  const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
   const [dashboard, setDashboard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -42,12 +40,10 @@ export default function DashboardScreen() {
     }
   };
 
-  // Refresh dashboard every time the screen is focused (e.g. coming back from contacts)
-  useFocusEffect(
-    useCallback(() => {
-      loadDashboard();
-    }, [isAuthenticated, user])
-  );
+  // Refresh dashboard on mount and when auth state changes
+  useEffect(() => {
+    loadDashboard();
+  }, [isAuthenticated, user]);
 
   const onRefresh = () => {
     setRefreshing(true);
