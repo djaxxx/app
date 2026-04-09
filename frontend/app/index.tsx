@@ -89,15 +89,7 @@ export default function HomeScreen() {
   };
 
   const handleLogin = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = typeof window !== 'undefined' 
-      ? `${window.location.origin}/auth/callback`
-      : '';
-    const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-    
-    if (typeof window !== 'undefined') {
-      window.location.href = authUrl;
-    }
+    router.push('/auth/login');
   };
 
   const handleDJPress = (djId: string) => {

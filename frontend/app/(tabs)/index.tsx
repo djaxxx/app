@@ -32,7 +32,7 @@ export default function TabHomeScreen() {
     try {
       const [djsResult, typesResult] = await Promise.all([
         api.searchDJs({
-          ville: searchQuery || undefined,
+          code_postal: searchQuery || undefined,
           type_evenement: selectedEventType || undefined,
         }),
         api.getEventTypes(),
