@@ -36,7 +36,8 @@ export default function AuthCallback() {
             if (user.has_dj_profile) {
               router.replace('/(tabs)/dashboard');
             } else {
-              router.replace('/');
+              // New user without DJ profile → send to registration
+              router.replace('/dj-register');
             }
           } else {
             router.replace('/');

@@ -108,7 +108,7 @@ export default function DJRegisterScreen() {
 
   const handleLogin = () => {
     const redirectUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/dj-register`
+      ? `${window.location.origin}/auth/callback`
       : '';
     const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
     
