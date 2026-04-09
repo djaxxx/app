@@ -328,31 +328,7 @@ export default function DJRegisterScreen() {
               Créez votre compte pour rejoindre le réseau DJ Match
             </Text>
 
-            {authMode === 'choice' && (
-              <View style={styles.authChoices}>
-                <TouchableOpacity style={styles.googleButton} onPress={handleLogin}>
-                  <Ionicons name="logo-google" size={22} color="#fff" />
-                  <Text style={styles.googleButtonText}>Continuer avec Google</Text>
-                </TouchableOpacity>
-
-                <View style={styles.divider}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>ou</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <TouchableOpacity style={styles.emailButton} onPress={() => { setAuthMode('email-register'); setAuthError(''); }}>
-                  <Ionicons name="mail" size={22} color="#fff" />
-                  <Text style={styles.emailButtonText}>S'inscrire avec un email</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => { setAuthMode('email-login'); setAuthError(''); }}>
-                  <Text style={styles.switchText}>Déjà un compte ? Se connecter</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {authMode === 'email-register' && (
+            {(authMode === 'choice' || authMode === 'email-register') && (
               <View style={styles.authForm}>
                 <TextInput
                   style={styles.authInput}
@@ -406,8 +382,15 @@ export default function DJRegisterScreen() {
                   <Text style={styles.switchText}>Déjà un compte ? Se connecter</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => setAuthMode('choice')}>
-                  <Text style={styles.switchTextSecondary}>Retour aux options</Text>
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>ou</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity style={styles.googleButton} onPress={handleLogin}>
+                  <Ionicons name="logo-google" size={20} color="#fff" />
+                  <Text style={styles.googleButtonText}>Continuer avec Google</Text>
                 </TouchableOpacity>
               </View>
             )}
