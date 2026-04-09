@@ -113,9 +113,11 @@ async def register_email(request: Request, response: Response):
         secure=True, samesite="none", path="/", max_age=7*24*60*60)
 
     dj_profile = await db.dj_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    is_admin = ADMIN_EMAIL and email.lower() == ADMIN_EMAIL.lower()
     return {"user_id": user_id, "email": email, "name": existing.get("name", name) if existing else name,
             "picture": existing.get("picture") if existing else None,
-            "has_dj_profile": dj_profile is not None, "is_dj": dj_profile is not None}
+            "has_dj_profile": dj_profile is not None, "is_dj": dj_profile is not None,
+            "is_admin": is_admin}
 
 
 @router.post("/auth/login-email")
@@ -146,9 +148,10 @@ async def login_email(request: Request, response: Response):
     response.set_cookie(key="session_token", value=session_token, httponly=True,
         secure=True, samesite="none", path="/", max_age=7*24*60*60)
     dj_profile = await db.dj_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    is_admin = ADMIN_EMAIL and user["email"].lower() == ADMIN_EMAIL.lower()
     return {"user_id": user_id, "email": user["email"], "name": user.get("name", ""),
             "picture": user.get("picture"), "has_dj_profile": dj_profile is not None,
-            "is_dj": dj_profile is not None}
+            "is_dj": dj_profile is not None, "is_admin": is_admin}
 
 
 @router.post("/auth/session")
@@ -195,8 +198,10 @@ async def create_session(request: Request, response: Response):
             response.set_cookie(key="session_token", value=session_token, httponly=True,
                 secure=True, samesite="none", path="/", max_age=7*24*60*60)
             dj_profile = await db.dj_profiles.find_one({"user_id": user_id}, {"_id": 0})
+            is_admin = ADMIN_EMAIL and email.lower() == ADMIN_EMAIL.lower()
             return {"user_id": user_id, "email": email, "name": name, "picture": picture,
-                    "has_dj_profile": dj_profile is not None, "is_dj": dj_profile is not None}
+                    "has_dj_profile": dj_profile is not None, "is_dj": dj_profile is not None,
+                    "is_admin": is_admin}
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Delai d'attente depasse")
     except HTTPException:

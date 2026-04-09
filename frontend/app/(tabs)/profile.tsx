@@ -215,6 +215,17 @@ export default function ProfileScreen() {
               <Ionicons name="chevron-forward" size={24} color="#F59E0B" />
             </TouchableOpacity>
           )}
+
+          {user?.is_admin && (
+            <TouchableOpacity
+              style={[styles.actionItem, styles.adminAction]}
+              onPress={() => router.push('/admin-contacts')}
+            >
+              <Ionicons name="people" size={24} color="#F59E0B" />
+              <Text style={[styles.actionText, { color: '#F59E0B' }]}>Contacts CRM</Text>
+              <Ionicons name="chevron-forward" size={24} color="#F59E0B" />
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.footer}>
