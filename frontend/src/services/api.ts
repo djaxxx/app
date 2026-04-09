@@ -194,6 +194,28 @@ class ApiService {
     });
   }
 
+  // Boost
+  async getBoostPlans() {
+    return this.request<any[]>('/api/boost/plans');
+  }
+
+  async getBoostStatus() {
+    return this.request<{
+      boost_active: boolean;
+      boost_plan: string | null;
+      boost_start: string | null;
+      boost_end: string | null;
+      days_remaining: number;
+    }>('/api/boost/status');
+  }
+
+  async createBoostCheckout(plan: string, originUrl: string) {
+    return this.request<{ checkout_url: string; session_id: string; plan: string; amount: number }>('/api/boost/create-checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan, origin_url: originUrl }),
+    });
+  }
+
   // Reviews
   async submitReview(data: {
     dj_user_id: string;

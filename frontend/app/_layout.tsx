@@ -42,6 +42,10 @@ export default function RootLayout() {
         <Stack.Screen name="subscription/success" options={{ title: 'Paiement' }} />
         <Stack.Screen name="subscription/cancel" options={{ title: 'Paiement annulé' }} />
         <Stack.Screen name="edit-profile" options={{ title: 'Modifier le profil', headerShown: false }} />
+        <Stack.Screen name="boost" options={{ title: 'Booster mon profil', headerShown: false }} />
+        <Stack.Screen name="boost/success" options={{ title: 'Boost activé', headerShown: false }} />
+        <Stack.Screen name="boost/cancel" options={{ title: 'Boost annulé', headerShown: false }} />
+        <Stack.Screen name="my-contacts" options={{ title: 'Mes demandes', headerShown: false }} />
       </Stack>
     </>
   );

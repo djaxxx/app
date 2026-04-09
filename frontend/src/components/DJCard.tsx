@@ -27,13 +27,23 @@ export function DJCard({ dj, onPress }: DJCardProps) {
   };
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={[styles.card, dj.boost_active && styles.cardBoosted]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       <View style={styles.imageContainer}>
         {dj.photo_profil ? (
           <Image source={{ uri: dj.photo_profil }} style={styles.image} />
         ) : (
           <View style={styles.placeholderImage}>
             <Ionicons name="person" size={40} color="#666" />
+          </View>
+        )}
+        {dj.boost_active && (
+          <View style={styles.boostBadge}>
+            <Ionicons name="star" size={14} color="#000" />
+            <Text style={styles.boostBadgeText}>Sponsorisé</Text>
           </View>
         )}
         {dj.badge_verifie && (
@@ -89,6 +99,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
+  cardBoosted: {
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
   imageContainer: {
     height: 180,
     position: 'relative',
@@ -119,6 +133,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+    marginLeft: 4,
+  },
+  boostBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: '#FFD700',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  boostBadgeText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: 'bold',
     marginLeft: 4,
   },
   content: {

@@ -809,12 +809,32 @@ async def list_djs(
     skip = (page - 1) * limit
     
     total = await db.dj_profiles.count_documents(query)
-    djs = await db.dj_profiles.find(query, {"_id": 0}).sort("note_moyenne", -1).skip(skip).limit(limit).to_list(limit)
     
-    # Remove sensitive data
+    # Sort: boosted DJs first (active boost with valid end date), then by rating
+    now = datetime.now(timezone.utc)
+    djs = await db.dj_profiles.find(query, {"_id": 0}).sort([
+        ("boost_active", -1),  # Boosted DJs first
+        ("note_moyenne", -1),  # Then by rating
+    ]).skip(skip).limit(limit).to_list(limit)
+    
+    # Auto-expire boosts and enrich data
     for dj in djs:
         dj.pop("telephone", None)
         dj.pop("email", None)
+        
+        # Ensure boost_active field is always present
+        if "boost_active" not in dj:
+            dj["boost_active"] = False
+        
+        # Check boost expiration
+        boost_end = dj.get("boost_end")
+        if dj.get("boost_active") and boost_end and boost_end < now:
+            dj["boost_active"] = False
+            # Auto-expire in DB (fire and forget)
+            await db.dj_profiles.update_one(
+                {"user_id": dj["user_id"]},
+                {"$set": {"boost_active": False}}
+            )
     
     return {
         "total": total,
@@ -1058,6 +1078,114 @@ async def reject_review(review_id: str, request: Request):
     return {"message": "Avis rejeté"}
 
 # ===================
+# BOOST SPONSORISE
+# ===================
+BOOST_PLANS = {
+    "1_week": {"amount": 18.00, "days": 7, "label": "1 semaine", "description": "18€ / 7 jours"},
+    "2_weeks": {"amount": 34.00, "days": 14, "label": "2 semaines", "description": "34€ / 14 jours"},
+    "1_month": {"amount": 60.00, "days": 30, "label": "1 mois", "description": "60€ / 30 jours"},
+}
+
+@api_router.get("/boost/plans")
+async def get_boost_plans():
+    """Get available boost plans"""
+    return [
+        {"id": "1_week", "amount": 18.00, "currency": "eur", "label": "1 semaine", "description": "18€", "days": 7},
+        {"id": "2_weeks", "amount": 34.00, "currency": "eur", "label": "2 semaines", "description": "34€", "days": 14, "savings": "Économie 2€"},
+        {"id": "1_month", "amount": 60.00, "currency": "eur", "label": "1 mois", "description": "60€", "days": 30, "savings": "Économie 12€"},
+    ]
+
+@api_router.get("/boost/status")
+async def get_boost_status(request: Request):
+    """Get current DJ boost status"""
+    user_data = await require_dj(request)
+    profile = await db.dj_profiles.find_one({"user_id": user_data["user_id"]})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+    
+    boost_active = profile.get("boost_active", False)
+    boost_end = profile.get("boost_end")
+    
+    # Auto-expire boost
+    if boost_active and boost_end and boost_end < datetime.now(timezone.utc):
+        await db.dj_profiles.update_one(
+            {"user_id": user_data["user_id"]},
+            {"$set": {"boost_active": False}}
+        )
+        boost_active = False
+    
+    return {
+        "boost_active": boost_active,
+        "boost_plan": profile.get("boost_plan"),
+        "boost_start": profile.get("boost_start"),
+        "boost_end": boost_end,
+        "days_remaining": max(0, (boost_end - datetime.now(timezone.utc)).days) if boost_active and boost_end else 0,
+    }
+
+@api_router.post("/boost/create-checkout")
+async def create_boost_checkout(request: Request):
+    """Create a Stripe checkout session for DJ boost"""
+    user_data = await require_dj(request)
+    
+    body = await request.json()
+    origin_url = body.get("origin_url", "")
+    plan = body.get("plan", "1_week")
+    
+    if not origin_url:
+        raise HTTPException(status_code=400, detail="origin_url requis")
+    
+    if plan not in BOOST_PLANS:
+        raise HTTPException(status_code=400, detail="Plan de boost invalide")
+    
+    plan_details = BOOST_PLANS[plan]
+    
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        
+        host_url = str(request.base_url).rstrip("/")
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        success_url = f"{origin_url}/boost/success?session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{origin_url}/boost/cancel"
+        
+        checkout_request = CheckoutSessionRequest(
+            amount=plan_details["amount"],
+            currency="eur",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "user_id": user_data["user_id"],
+                "type": "dj_boost",
+                "plan": plan,
+                "days": str(plan_details["days"])
+            }
+        )
+        
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        await db.payment_transactions.insert_one({
+            "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
+            "session_id": session.session_id,
+            "user_id": user_data["user_id"],
+            "amount": plan_details["amount"],
+            "currency": "eur",
+            "type": "boost",
+            "plan": plan,
+            "days": plan_details["days"],
+            "status": "pending",
+            "payment_status": "initiated",
+            "created_at": datetime.now(timezone.utc)
+        })
+        
+        return {"checkout_url": session.url, "session_id": session.session_id, "plan": plan, "amount": plan_details["amount"]}
+    
+    except Exception as e:
+        logger.error(f"Boost checkout error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur paiement: {str(e)}")
+
+# ===================
 # STRIPE SUBSCRIPTION
 # ===================
 class SubscriptionPlan(str, Enum):
@@ -1216,9 +1344,31 @@ async def stripe_webhook(request: Request):
         
         if webhook_response.payment_status == "paid":
             user_id = webhook_response.metadata.get("user_id")
+            payment_type = webhook_response.metadata.get("type", "dj_subscription")
             plan = webhook_response.metadata.get("plan", "monthly")
             days = int(webhook_response.metadata.get("days", "30"))
-            if user_id:
+            
+            if user_id and payment_type == "dj_boost":
+                # Handle boost payment
+                boost_start = datetime.now(timezone.utc)
+                boost_end = boost_start + timedelta(days=days)
+                
+                await db.dj_profiles.update_one(
+                    {"user_id": user_id},
+                    {"$set": {
+                        "boost_active": True,
+                        "boost_start": boost_start,
+                        "boost_end": boost_end,
+                        "boost_plan": plan,
+                    }}
+                )
+                
+                await db.payment_transactions.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": {"status": "completed", "payment_status": "paid"}}
+                )
+            elif user_id:
+                # Handle subscription payment
                 subscription_end = datetime.now(timezone.utc) + timedelta(days=days)
                 
                 await db.dj_profiles.update_one(
@@ -1393,6 +1543,38 @@ async def admin_toggle_subscription(user_id: str, request: Request):
         "message": f"DJ {'activé' if new_status == 'active' else 'désactivé'} avec succès",
         "subscription_status": new_status,
     }
+
+@api_router.put("/admin/djs/{user_id}/toggle-boost")
+async def admin_toggle_boost(user_id: str, request: Request):
+    """Admin: Toggle DJ boost (activate 30 days / deactivate)"""
+    await require_admin(request)
+    
+    dj = await db.dj_profiles.find_one({"user_id": user_id})
+    if not dj:
+        raise HTTPException(status_code=404, detail="DJ non trouvé")
+    
+    is_boosted = dj.get("boost_active", False)
+    
+    if is_boosted:
+        # Deactivate boost
+        await db.dj_profiles.update_one(
+            {"user_id": user_id},
+            {"$set": {"boost_active": False}}
+        )
+        return {"message": "Boost désactivé", "boost_active": False}
+    else:
+        # Activate boost for 30 days
+        now = datetime.now(timezone.utc)
+        await db.dj_profiles.update_one(
+            {"user_id": user_id},
+            {"$set": {
+                "boost_active": True,
+                "boost_start": now,
+                "boost_end": now + timedelta(days=30),
+                "boost_plan": "admin_free",
+            }}
+        )
+        return {"message": "Boost activé (30 jours)", "boost_active": True}
 
 @api_router.delete("/admin/djs/{user_id}")
 async def admin_delete_dj(user_id: str, request: Request):

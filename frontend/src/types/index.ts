@@ -45,6 +45,8 @@ export interface DJProfile {
   created_at: string;
   updated_at: string;
   is_active: boolean;
+  boost_active?: boolean;
+  boost_end?: string;
   reviews?: Review[];
 }
 

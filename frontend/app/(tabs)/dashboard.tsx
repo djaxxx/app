@@ -302,6 +302,18 @@ export default function DashboardScreen() {
                 )}
                 <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionItem, styles.boostActionItem]}
+                onPress={() => router.push('/boost')}
+              >
+                <Ionicons name="rocket" size={24} color="#FFD700" />
+                <Text style={[styles.actionText, { color: '#FFD700' }]}>Booster mon profil</Text>
+                <View style={styles.boostNewBadge}>
+                  <Text style={styles.boostNewBadgeText}>NOUVEAU</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="#FFD700" />
+              </TouchableOpacity>
             </View>
 
             {/* Recent Reviews */}
@@ -555,6 +567,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     marginLeft: 12,
+  },
+  boostActionItem: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+  },
+  boostNewBadge: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  boostNewBadgeText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   reviewCard: {
     backgroundColor: '#1a1a1a',
