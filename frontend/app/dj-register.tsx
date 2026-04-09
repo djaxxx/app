@@ -187,19 +187,32 @@ export default function DJRegisterScreen() {
 
   const handleSubmit = async () => {
     if (!formData.nom || !formData.prenom || !formData.nom_de_scene || !formData.telephone || !formData.ville || !formData.siret) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+      if (Platform.OS === 'web') {
+        window.alert('Veuillez remplir tous les champs obligatoires');
+      } else {
+        Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+      }
       return;
     }
 
     if (!siretResult?.valid) {
-      Alert.alert('Erreur', 'Veuillez vérifier votre numéro SIRET');
+      if (Platform.OS === 'web') {
+        window.alert('Veuillez vérifier votre numéro SIRET');
+      } else {
+        Alert.alert('Erreur', 'Veuillez vérifier votre numéro SIRET');
+      }
       return;
     }
 
     // Validate minimum tarif
     const price = extractPrice(formData.tarif_indicatif);
     if (price < 800) {
-      Alert.alert('Tarif minimum requis', 'Le tarif indicatif doit être d\'au moins 800€. Tarif détecté: ' + (price > 0 ? price + '€' : 'non renseigné'));
+      const msg = 'Le tarif indicatif doit être d\'au moins 800€. Tarif détecté: ' + (price > 0 ? price + '€' : 'non renseigné');
+      if (Platform.OS === 'web') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Tarif minimum requis', msg);
+      }
       return;
     }
 
@@ -215,13 +228,30 @@ export default function DJRegisterScreen() {
       await api.registerDJ(profileData);
       await checkAuth();
       
-      Alert.alert(
-        'Profil créé !',
-        'Votre profil DJ a été créé avec succès. Activez votre abonnement pour être visible.',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)/dashboard') }]
-      );
+      // Automatically redirect to Stripe payment
+      const originUrl = Platform.OS === 'web' ? window.location.origin : '';
+      try {
+        const checkoutResult = await api.createSubscriptionCheckout(originUrl, 'monthly');
+        if (checkoutResult.checkout_url) {
+          if (Platform.OS === 'web') {
+            window.location.href = checkoutResult.checkout_url;
+          } else {
+            Linking.openURL(checkoutResult.checkout_url);
+          }
+          return; // Don't reset loading - page will navigate away
+        }
+      } catch (paymentError) {
+        // If Stripe fails, still go to dashboard (user can pay later)
+        console.error('Stripe checkout error:', paymentError);
+      }
+      
+      router.replace('/(tabs)/dashboard');
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Erreur lors de la création du profil');
+      if (Platform.OS === 'web') {
+        window.alert(error.message || 'Erreur lors de la création du profil');
+      } else {
+        Alert.alert('Erreur', error.message || 'Erreur lors de la création du profil');
+      }
     } finally {
       setLoading(false);
     }
