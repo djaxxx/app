@@ -465,7 +465,7 @@ export default function AdminScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   header: {
     flexDirection: 'row',
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     marginHorizontal: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   textArea: {
     minHeight: 80,
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#1E1E4A',
   },
   chipActive: {
     backgroundColor: '#8B5CF6',
@@ -603,12 +603,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   djCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   djCardHeader: {
     flexDirection: 'row',

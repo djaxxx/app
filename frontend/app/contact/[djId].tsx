@@ -227,7 +227,7 @@ export default function ContactDJScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   keyboardView: {
     flex: 1,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   djPreview: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     padding: 16,
     marginHorizontal: 20,
     marginTop: 16,
@@ -278,13 +278,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     color: '#fff',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   textArea: {
     height: 120,
@@ -294,13 +294,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   eventTypeChip: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   eventTypeChipActive: {
     backgroundColor: '#8B5CF6',

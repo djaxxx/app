@@ -183,12 +183,12 @@ export default function MapScreen() {
       font-weight: bold;
     }
     .leaflet-popup-content-wrapper {
-      background: #1a1a1a;
+      background: #12123A;
       color: white;
       border-radius: 12px;
     }
     .leaflet-popup-tip {
-      background: #1a1a1a;
+      background: #12123A;
     }
     .dj-popup {
       padding: 8px;
@@ -510,7 +510,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   header: {
     flexDirection: 'row',
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   filterChip: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#1E1E4A',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   djModalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,

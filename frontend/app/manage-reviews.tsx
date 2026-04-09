@@ -181,20 +181,20 @@ export default function ReviewsManageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0c0c0c' },
+  container: { flex: 1, backgroundColor: '#0B0B24' },
   header: { flexDirection: 'row', alignItems: 'center', padding: 20 },
   backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   pendingBadge: { color: '#F59E0B', fontSize: 13, fontWeight: '600', marginTop: 2 },
   filters: { flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 16 },
-  filterBtn: { backgroundColor: '#1a1a1a', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#2a2a2a' },
+  filterBtn: { backgroundColor: '#12123A', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#1E1E4A' },
   filterBtnActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
   filterText: { color: '#888', fontSize: 13, fontWeight: '600' },
   filterTextActive: { color: '#fff' },
   list: { paddingHorizontal: 20, paddingBottom: 40 },
   emptyState: { alignItems: 'center', paddingVertical: 40 },
   emptyText: { color: '#888', fontSize: 16, marginTop: 12 },
-  reviewCard: { backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a' },
+  reviewCard: { backgroundColor: '#12123A', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#1E1E4A' },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   reviewAuthor: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   reviewEmail: { fontSize: 12, color: '#666', marginTop: 2 },

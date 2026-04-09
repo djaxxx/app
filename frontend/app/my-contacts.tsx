@@ -296,7 +296,7 @@ export default function MyContactsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   loader: {
     flex: 1,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   filterChip: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   contactCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   eventTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
@@ -472,13 +472,13 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
+    borderTopColor: '#1E1E4A',
     paddingTop: 12,
   },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

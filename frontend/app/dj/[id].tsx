@@ -585,7 +585,7 @@ export default function DJProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   loader: {
     flex: 1,
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   placeholderHero: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   profileSection: {
     padding: 20,
     marginTop: -40,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
   pricingSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     padding: 12,
     borderRadius: 12,
     marginBottom: 16,
@@ -726,7 +726,7 @@ const styles = StyleSheet.create({
   callButton: {
     width: 52,
     height: 52,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 12,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     padding: 12,
     borderRadius: 12,
   },
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
   socialButton: {
     width: 56,
     height: 56,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
@@ -809,7 +809,7 @@ const styles = StyleSheet.create({
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 10,
     padding: 12,
     marginTop: 10,
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
   leaveReviewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
@@ -837,11 +837,11 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   reviewFormContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   reviewFormTitle: {
     color: '#fff',
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
     marginBottom: 10,
   },
   reviewTextArea: {
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   successCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -936,7 +936,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   reviewCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -976,12 +976,12 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 12,
     marginRight: 12,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
   },
   videoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,

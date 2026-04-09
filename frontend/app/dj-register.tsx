@@ -761,7 +761,7 @@ export default function DJRegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   keyboardView: {
     flex: 1,
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
   },
   progress: {
     height: 4,
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#1E1E4A',
     marginHorizontal: 20,
     borderRadius: 2,
     marginBottom: 24,
@@ -819,13 +819,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     color: '#fff',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   textArea: {
     height: 100,
@@ -883,14 +883,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   eventTypeChip: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   eventTypeChipActive: {
     backgroundColor: '#8B5CF6',
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#333',
+    backgroundColor: '#1E1E4A',
   },
   dividerText: {
     color: '#666',
@@ -1020,14 +1020,14 @@ const styles = StyleSheet.create({
   },
   authInput: {
     width: '100%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 14,
     color: '#fff',
     fontSize: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#1E1E4A',
   },
   authErrorText: {
     color: '#EF4444',

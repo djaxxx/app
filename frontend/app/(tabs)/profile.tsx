@@ -229,7 +229,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   loader: {
     flex: 1,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   profileCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
   },
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     color: '#F59E0B',
   },
   actionItem: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',

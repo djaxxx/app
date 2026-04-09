@@ -202,7 +202,7 @@ export default function BoostScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   loader: {
     flex: 1,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   benefitsSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     marginHorizontal: 20,
     padding: 20,
@@ -298,12 +298,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   planCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     marginHorizontal: 20,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
     overflow: 'hidden',
   },
   planCardBest: {
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   },
   planFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
+    borderTopColor: '#1E1E4A',
     padding: 14,
     alignItems: 'center',
   },

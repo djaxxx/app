@@ -89,7 +89,7 @@ export function DJCard({ dj, onPress }: DJCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 16,
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   placeholderImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#1E1E4A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   tag: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#1E1E4A',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,

@@ -145,7 +145,7 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   header: {
     paddingHorizontal: 20,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   filtersSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     marginHorizontal: 20,
     marginTop: 16,
     padding: 16,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   ratingButton: {
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#1E1E4A',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,

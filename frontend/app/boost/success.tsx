@@ -32,7 +32,7 @@ export default function BoostSuccessScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
     justifyContent: 'center',
   },
   content: {

@@ -348,7 +348,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   loader: {
     flex: 1,
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   subscriptionAlert: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     marginHorizontal: 20,
     padding: 16,
     borderRadius: 12,
@@ -405,12 +405,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   subscriptionSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     marginHorizontal: 20,
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   subscriptionChoiceTitle: {
     color: '#fff',
@@ -442,12 +442,12 @@ const styles = StyleSheet.create({
   },
   planCard: {
     width: '48%',
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
     position: 'relative',
   },
   planCardSelected: {
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   actionItem: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   reviewCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   lockedBenefits: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
@@ -669,7 +669,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   editProfileLocked: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',

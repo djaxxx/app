@@ -271,7 +271,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   scrollView: {
     flex: 1,
@@ -329,13 +329,13 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 12,
     marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   trustEmoji: {
     fontSize: 22,
@@ -431,13 +431,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   filterChip: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#2a2a2a',
+    borderColor: '#1E1E4A',
   },
   filterChipActive: {
     backgroundColor: '#8B5CF6',
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ctaSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     marginHorizontal: 20,
     marginVertical: 24,
     padding: 24,

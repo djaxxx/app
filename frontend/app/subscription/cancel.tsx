@@ -47,7 +47,7 @@ export default function SubscriptionCancelScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0c0c0c',
+    backgroundColor: '#0B0B24',
   },
   content: {
     flex: 1,
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   infoBox: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#12123A',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
