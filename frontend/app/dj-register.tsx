@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -229,20 +230,25 @@ export default function DJRegisterScreen() {
       await checkAuth();
       
       // Automatically redirect to Stripe payment
-      const originUrl = Platform.OS === 'web' ? window.location.origin : '';
-      try {
-        const checkoutResult = await api.createSubscriptionCheckout(originUrl, 'monthly');
-        if (checkoutResult.checkout_url) {
-          if (Platform.OS === 'web') {
-            window.location.href = checkoutResult.checkout_url;
-          } else {
-            Linking.openURL(checkoutResult.checkout_url);
+      const originUrl = Platform.OS === 'web' 
+        ? window.location.origin 
+        : (process.env.EXPO_PUBLIC_BACKEND_URL || '');
+      
+      if (originUrl) {
+        try {
+          const checkoutResult = await api.createSubscriptionCheckout(originUrl, 'monthly');
+          if (checkoutResult.checkout_url) {
+            if (Platform.OS === 'web') {
+              window.location.href = checkoutResult.checkout_url;
+            } else {
+              await Linking.openURL(checkoutResult.checkout_url);
+            }
+            return; // Don't reset loading - page will navigate away
           }
-          return; // Don't reset loading - page will navigate away
+        } catch (paymentError) {
+          // If Stripe fails, still go to dashboard (user can pay later)
+          console.error('Stripe checkout error:', paymentError);
         }
-      } catch (paymentError) {
-        // If Stripe fails, still go to dashboard (user can pay later)
-        console.error('Stripe checkout error:', paymentError);
       }
       
       router.replace('/(tabs)/dashboard');
