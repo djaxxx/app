@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Backend Regression Test Suite for DJ Connect France
-CRITICAL: Full regression test after MAJOR server.py refactoring.
-Tests ALL endpoints to ensure they work exactly as before the modular split.
+Comprehensive Backend Regression Test Suite for DJ Connect France
+Tests ALL API endpoints in sequence with cookie-based authentication.
 """
 
 import requests
@@ -17,688 +16,714 @@ API_BASE = f"{BACKEND_URL}/api"
 
 # Test data
 TEST_BASE64_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-VALID_SIRET = "44306184100047"  # Google France
 TIMESTAMP = int(time.time())
-TEST_EMAIL = f"test_refactor_{TIMESTAMP}@test.com"
-TEST_PASSWORD = "TestPassword123!"
+TEST_EMAIL = f"fulltest_{TIMESTAMP}@test.com"
+TEST_PASSWORD = "Test12345!"
+TEST_NAME = "DJ FullTest"
 
-# Global session for maintaining cookies
+# Global session for cookie persistence
 session = requests.Session()
 session.timeout = 10
 
-def log_test(test_name, status, details=""):
-    """Log test results with consistent formatting."""
-    status_icon = "✅" if status else "❌"
-    print(f"{status_icon} {test_name}: {details}")
-    return status
+# Test results tracking
+test_results = {}
+user_id = None
+dj_user_id = None
 
-def test_health_basic():
-    """Test Health & Basic endpoints."""
-    print("\n🔍 Testing Health & Basic Endpoints...")
-    results = {}
-    
-    # GET /api/health
-    try:
-        response = session.get(f"{API_BASE}/health")
-        results["health"] = log_test("GET /api/health", 
-                                   response.status_code == 200, 
-                                   f"Status: {response.status_code}")
-    except Exception as e:
-        results["health"] = log_test("GET /api/health", False, f"Error: {e}")
+def log_test(test_name, success, details=""):
+    """Log test result."""
+    status = "✅ PASS" if success else "❌ FAIL"
+    print(f"{status} {test_name}")
+    if details:
+        print(f"    {details}")
+    test_results[test_name] = {"success": success, "details": details}
+    return success
+
+def test_health_static():
+    """Test health and static endpoints."""
+    print("\n🔍 1. HEALTH & STATIC ENDPOINTS")
     
     # GET /api/
     try:
         response = session.get(f"{API_BASE}/")
-        results["root"] = log_test("GET /api/", 
-                                 response.status_code == 200, 
-                                 f"Status: {response.status_code}")
+        success = response.status_code == 200 and "message" in response.json()
+        log_test("GET /api/", success, f"Status: {response.status_code}")
     except Exception as e:
-        results["root"] = log_test("GET /api/", False, f"Error: {e}")
+        log_test("GET /api/", False, str(e))
+    
+    # GET /api/health
+    try:
+        response = session.get(f"{API_BASE}/health")
+        data = response.json()
+        success = response.status_code == 200 and data.get("status") == "healthy"
+        log_test("GET /api/health", success, f"Status: {data.get('status')}")
+    except Exception as e:
+        log_test("GET /api/health", False, str(e))
     
     # GET /api/event-types
     try:
         response = session.get(f"{API_BASE}/event-types")
-        results["event_types"] = log_test("GET /api/event-types", 
-                                        response.status_code == 200, 
-                                        f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and len(data) == 8
+        log_test("GET /api/event-types", success, f"Found {len(data)} event types")
     except Exception as e:
-        results["event_types"] = log_test("GET /api/event-types", False, f"Error: {e}")
-    
-    return results
+        log_test("GET /api/event-types", False, str(e))
 
-def test_auth_endpoints():
-    """Test Authentication endpoints."""
-    print("\n🔍 Testing Authentication Endpoints...")
-    results = {}
+def test_auth_email():
+    """Test email registration and login."""
+    global user_id
+    print("\n🔍 2. EMAIL AUTHENTICATION")
     
     # POST /api/auth/register-email
-    register_payload = {
-        "email": TEST_EMAIL,
-        "password": TEST_PASSWORD,
-        "name": "Test User"
-    }
-    
     try:
-        response = session.post(f"{API_BASE}/auth/register-email", json=register_payload)
-        if response.status_code == 200:
-            # Check if session cookie is set
-            has_session = any('session' in cookie.name.lower() for cookie in session.cookies)
-            results["register"] = log_test("POST /api/auth/register-email", 
-                                         True, 
-                                         f"User created, session: {has_session}")
-        else:
-            results["register"] = log_test("POST /api/auth/register-email", 
-                                         False, 
-                                         f"Status: {response.status_code}, Response: {response.text}")
+        payload = {
+            "email": TEST_EMAIL,
+            "password": TEST_PASSWORD,
+            "name": TEST_NAME
+        }
+        response = session.post(f"{API_BASE}/auth/register-email", json=payload)
+        success = response.status_code == 200
+        if success:
+            data = response.json()
+            user_id = data.get("user_id")
+        log_test("POST /api/auth/register-email", success, f"User ID: {user_id}")
     except Exception as e:
-        results["register"] = log_test("POST /api/auth/register-email", False, f"Error: {e}")
+        log_test("POST /api/auth/register-email", False, str(e))
     
-    # GET /api/auth/me (should work with session cookie)
+    # GET /api/auth/me (with cookie)
     try:
         response = session.get(f"{API_BASE}/auth/me")
-        if response.status_code == 200:
-            user_data = response.json()
-            results["me"] = log_test("GET /api/auth/me", 
-                                   True, 
-                                   f"User: {user_data.get('email', 'Unknown')}")
-        else:
-            results["me"] = log_test("GET /api/auth/me", 
-                                   False, 
-                                   f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and data.get("email") == TEST_EMAIL
+        log_test("GET /api/auth/me (after register)", success, f"Email: {data.get('email')}")
     except Exception as e:
-        results["me"] = log_test("GET /api/auth/me", False, f"Error: {e}")
-    
-    # POST /api/auth/login-email (test with same credentials)
-    login_payload = {
-        "email": TEST_EMAIL,
-        "password": TEST_PASSWORD
-    }
-    
-    try:
-        response = session.post(f"{API_BASE}/auth/login-email", json=login_payload)
-        results["login"] = log_test("POST /api/auth/login-email", 
-                                  response.status_code == 200, 
-                                  f"Status: {response.status_code}")
-    except Exception as e:
-        results["login"] = log_test("POST /api/auth/login-email", False, f"Error: {e}")
+        log_test("GET /api/auth/me (after register)", False, str(e))
     
     # POST /api/auth/logout
     try:
         response = session.post(f"{API_BASE}/auth/logout")
-        results["logout"] = log_test("POST /api/auth/logout", 
-                                   response.status_code == 200, 
-                                   f"Status: {response.status_code}")
+        success = response.status_code == 200
+        log_test("POST /api/auth/logout", success)
     except Exception as e:
-        results["logout"] = log_test("POST /api/auth/logout", False, f"Error: {e}")
+        log_test("POST /api/auth/logout", False, str(e))
     
-    return results
-
-def test_siret_endpoint():
-    """Test SIRET verification endpoint."""
-    print("\n🔍 Testing SIRET Verification...")
-    results = {}
-    
-    # POST /api/verify-siret
-    siret_payload = {"siret": VALID_SIRET}
-    
+    # POST /api/auth/login-email
     try:
-        response = session.post(f"{API_BASE}/verify-siret", json=siret_payload)
-        if response.status_code == 200:
-            data = response.json()
-            company_name = data.get('nom_raison_sociale', 'Unknown')
-            results["siret"] = log_test("POST /api/verify-siret", 
-                                      True, 
-                                      f"Company: {company_name}")
-        else:
-            results["siret"] = log_test("POST /api/verify-siret", 
-                                      False, 
-                                      f"Status: {response.status_code}, Response: {response.text}")
+        payload = {
+            "email": TEST_EMAIL,
+            "password": TEST_PASSWORD
+        }
+        response = session.post(f"{API_BASE}/auth/login-email", json=payload)
+        success = response.status_code == 200
+        log_test("POST /api/auth/login-email", success)
     except Exception as e:
-        results["siret"] = log_test("POST /api/verify-siret", False, f"Error: {e}")
+        log_test("POST /api/auth/login-email", False, str(e))
     
-    return results
+    # GET /api/auth/me (after login)
+    try:
+        response = session.get(f"{API_BASE}/auth/me")
+        data = response.json()
+        success = response.status_code == 200 and data.get("email") == TEST_EMAIL
+        log_test("GET /api/auth/me (after login)", success, f"Email: {data.get('email')}")
+    except Exception as e:
+        log_test("GET /api/auth/me (after login)", False, str(e))
+
+def test_siret_verification():
+    """Test SIRET verification endpoints."""
+    print("\n🔍 3. SIRET VERIFICATION")
+    
+    # Valid SIRET
+    try:
+        payload = {"siret": "44306184100047"}
+        response = session.post(f"{API_BASE}/verify-siret", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and data.get("valid") == True
+        log_test("POST /api/verify-siret (valid)", success, f"Company: {data.get('company_name', 'N/A')}")
+    except Exception as e:
+        log_test("POST /api/verify-siret (valid)", False, str(e))
+    
+    # Invalid SIRET (all zeros)
+    try:
+        payload = {"siret": "00000000000000"}
+        response = session.post(f"{API_BASE}/verify-siret", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and data.get("valid") == False
+        log_test("POST /api/verify-siret (invalid zeros)", success)
+    except Exception as e:
+        log_test("POST /api/verify-siret (invalid zeros)", False, str(e))
+    
+    # Invalid SIRET (wrong length)
+    try:
+        payload = {"siret": "123"}
+        response = session.post(f"{API_BASE}/verify-siret", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and data.get("valid") == False and ("14 digits" in data.get("message", "") or "14 chiffres" in data.get("message", ""))
+        log_test("POST /api/verify-siret (wrong length)", success, data.get("message", ""))
+    except Exception as e:
+        log_test("POST /api/verify-siret (wrong length)", False, str(e))
 
 def test_geo_endpoints():
-    """Test Geographic endpoints."""
-    print("\n🔍 Testing Geographic Endpoints...")
-    results = {}
+    """Test geographic endpoints."""
+    print("\n🔍 4. GEOGRAPHIC ENDPOINTS")
     
     # GET /api/geo/regions
     try:
         response = session.get(f"{API_BASE}/geo/regions")
-        if response.status_code == 200:
-            regions = response.json()
-            results["regions"] = log_test("GET /api/geo/regions", 
-                                        True, 
-                                        f"Found {len(regions)} regions")
-        else:
-            results["regions"] = log_test("GET /api/geo/regions", 
-                                        False, 
-                                        f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and len(data) == 18
+        log_test("GET /api/geo/regions", success, f"Found {len(data)} regions")
     except Exception as e:
-        results["regions"] = log_test("GET /api/geo/regions", False, f"Error: {e}")
+        log_test("GET /api/geo/regions", False, str(e))
     
     # GET /api/geo/departments
     try:
         response = session.get(f"{API_BASE}/geo/departments")
-        if response.status_code == 200:
-            departments = response.json()
-            results["departments"] = log_test("GET /api/geo/departments", 
-                                            True, 
-                                            f"Found {len(departments)} departments")
-        else:
-            results["departments"] = log_test("GET /api/geo/departments", 
-                                            False, 
-                                            f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and len(data) >= 95  # Should be ~100
+        log_test("GET /api/geo/departments", success, f"Found {len(data)} departments")
     except Exception as e:
-        results["departments"] = log_test("GET /api/geo/departments", False, f"Error: {e}")
+        log_test("GET /api/geo/departments", False, str(e))
+    
+    # GET /api/geo/departments?region_code=IDF (Île-de-France)
+    try:
+        response = session.get(f"{API_BASE}/geo/departments?region_code=IDF")
+        data = response.json()
+        success = response.status_code == 200 and len(data) > 0
+        log_test("GET /api/geo/departments (filtered)", success, f"Found {len(data)} departments in IDF")
+    except Exception as e:
+        log_test("GET /api/geo/departments (filtered)", False, str(e))
     
     # GET /api/geo/lookup-city?city=Paris
     try:
-        response = session.get(f"{API_BASE}/geo/lookup-city", params={"city": "Paris"})
-        if response.status_code == 200:
-            data = response.json()
-            results["lookup_city"] = log_test("GET /api/geo/lookup-city", 
-                                            True, 
-                                            f"Paris: {data.get('department_name', 'Unknown')}")
-        else:
-            results["lookup_city"] = log_test("GET /api/geo/lookup-city", 
-                                            False, 
-                                            f"Status: {response.status_code}")
+        response = session.get(f"{API_BASE}/geo/lookup-city?city=Paris")
+        data = response.json()
+        success = response.status_code == 200 and "department_name" in data and "region_name" in data
+        log_test("GET /api/geo/lookup-city", success, f"Paris: {data.get('department_name')} / {data.get('region_name')}")
     except Exception as e:
-        results["lookup_city"] = log_test("GET /api/geo/lookup-city", False, f"Error: {e}")
+        log_test("GET /api/geo/lookup-city", False, str(e))
     
     # GET /api/geo/djs-map
     try:
         response = session.get(f"{API_BASE}/geo/djs-map")
-        if response.status_code == 200:
-            data = response.json()
-            results["djs_map"] = log_test("GET /api/geo/djs-map", 
-                                        True, 
-                                        f"Found {len(data)} DJs on map")
-        else:
-            results["djs_map"] = log_test("GET /api/geo/djs-map", 
-                                        False, 
-                                        f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and "djs" in data
+        djs = data.get("djs", []) if success else []
+        log_test("GET /api/geo/djs-map", success, f"Found {len(djs)} DJ locations")
     except Exception as e:
-        results["djs_map"] = log_test("GET /api/geo/djs-map", False, f"Error: {e}")
-    
-    return results
+        log_test("GET /api/geo/djs-map", False, str(e))
 
-def test_image_upload():
-    """Test Image Upload endpoint."""
-    print("\n🔍 Testing Image Upload...")
-    results = {}
-    
-    # POST /api/upload/image
-    upload_payload = {
-        "image": TEST_BASE64_IMAGE,
-        "type": "profile"
-    }
+def test_dj_registration():
+    """Test DJ registration with full profile."""
+    global dj_user_id
+    print("\n🔍 5. DJ REGISTRATION")
     
     try:
-        response = session.post(f"{API_BASE}/upload/image", json=upload_payload)
-        if response.status_code == 200:
+        payload = {
+            "nom": "Test",
+            "prenom": "Complet",
+            "nom_de_scene": "DJ FullTest",
+            "telephone": "0612345678",
+            "ville": "Paris",
+            "code_postal": "75001",
+            "siret": "44306184100047",
+            "tarif_indicatif": "1000€",
+            "description": "Test DJ complet",
+            "types_evenements": ["Mariage", "Anniversaire"],
+            "annees_experience": 5,
+            "zone_intervention": ["Paris"],
+            "assurance_rc_numero": "RC-2024-TEST-001",
+            "assurance_rc_organisme": "AXA"
+        }
+        response = session.post(f"{API_BASE}/dj/register", json=payload)
+        success = response.status_code == 200
+        if success:
             data = response.json()
-            url = data.get('url', '')
-            if url.startswith('/api/uploads/'):
-                results["image_upload"] = log_test("POST /api/upload/image", 
-                                                 True, 
-                                                 f"URL: {url}")
-                
-                # Test if the uploaded image is accessible
-                try:
-                    img_response = session.get(f"{BACKEND_URL}{url}")
-                    results["image_serving"] = log_test("Image serving", 
-                                                      img_response.status_code == 200, 
-                                                      f"Status: {img_response.status_code}")
-                except Exception as e:
-                    results["image_serving"] = log_test("Image serving", False, f"Error: {e}")
-            else:
-                results["image_upload"] = log_test("POST /api/upload/image", 
-                                                 False, 
-                                                 f"Invalid URL format: {url}")
-        else:
-            results["image_upload"] = log_test("POST /api/upload/image", 
-                                             False, 
-                                             f"Status: {response.status_code}, Response: {response.text}")
+            dj_user_id = user_id  # DJ registration uses current user
+        log_test("POST /api/dj/register", success, f"DJ User ID: {dj_user_id}")
     except Exception as e:
-        results["image_upload"] = log_test("POST /api/upload/image", False, f"Error: {e}")
-    
-    return results
+        log_test("POST /api/dj/register", False, str(e))
 
-def test_dj_endpoints():
-    """Test DJ Profile endpoints (requires authentication)."""
-    print("\n🔍 Testing DJ Profile Endpoints...")
-    results = {}
+def test_dj_profile_management():
+    """Test DJ profile management endpoints."""
+    print("\n🔍 6. DJ PROFILE MANAGEMENT")
     
-    # First, re-authenticate to ensure we have a valid session
-    login_payload = {
-        "email": TEST_EMAIL,
-        "password": TEST_PASSWORD
-    }
-    
-    try:
-        login_response = session.post(f"{API_BASE}/auth/login-email", json=login_payload)
-        if login_response.status_code != 200:
-            print(f"⚠️ Failed to authenticate for DJ tests: {login_response.status_code}")
-            return {"auth_failed": False}
-    except Exception as e:
-        print(f"⚠️ Authentication error for DJ tests: {e}")
-        return {"auth_failed": False}
-    
-    # GET /api/djs (list all DJs)
-    try:
-        response = session.get(f"{API_BASE}/djs")
-        if response.status_code == 200:
-            data = response.json()
-            djs = data.get('djs', [])
-            results["djs_list"] = log_test("GET /api/djs", 
-                                         True, 
-                                         f"Found {len(djs)} DJs")
-        else:
-            results["djs_list"] = log_test("GET /api/djs", 
-                                         False, 
-                                         f"Status: {response.status_code}")
-    except Exception as e:
-        results["djs_list"] = log_test("GET /api/djs", False, f"Error: {e}")
-    
-    # POST /api/dj/register (create DJ profile)
-    dj_register_payload = {
-        "email": f"dj_{TIMESTAMP}@test.com",
-        "nom": "Test",
-        "prenom": "DJ",
-        "nom_de_scene": "DJ Test",
-        "telephone": "0123456789",
-        "ville": "Paris",
-        "siret": VALID_SIRET,
-        "description": "Test DJ for regression testing",
-        "types_evenements": ["Mariage", "Soirée privée"],
-        "tarif_indicatif": "800€/heure"
-    }
-    
-    try:
-        response = session.post(f"{API_BASE}/dj/register", json=dj_register_payload)
-        if response.status_code == 200:
-            results["dj_register"] = log_test("POST /api/dj/register", 
-                                            True, 
-                                            "DJ profile created")
-        else:
-            results["dj_register"] = log_test("POST /api/dj/register", 
-                                            False, 
-                                            f"Status: {response.status_code}, Response: {response.text}")
-    except Exception as e:
-        results["dj_register"] = log_test("POST /api/dj/register", False, f"Error: {e}")
-    
-    # GET /api/dj/profile (get own profile)
+    # GET /api/dj/profile
     try:
         response = session.get(f"{API_BASE}/dj/profile")
-        if response.status_code == 200:
-            profile = response.json()
-            results["dj_profile_get"] = log_test("GET /api/dj/profile", 
-                                               True, 
-                                               f"DJ: {profile.get('nom_dj', 'Unknown')}")
-        else:
-            results["dj_profile_get"] = log_test("GET /api/dj/profile", 
-                                               False, 
-                                               f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and "assurance_rc_numero" in data and "assurance_rc_organisme" in data
+        log_test("GET /api/dj/profile", success, f"Assurance: {data.get('assurance_rc_organisme')}")
     except Exception as e:
-        results["dj_profile_get"] = log_test("GET /api/dj/profile", False, f"Error: {e}")
+        log_test("GET /api/dj/profile", False, str(e))
     
-    # PUT /api/dj/profile (update profile)
-    update_payload = {
-        "description": "Updated description for regression test"
-    }
-    
+    # PUT /api/dj/profile
     try:
-        response = session.put(f"{API_BASE}/dj/profile", json=update_payload)
-        results["dj_profile_update"] = log_test("PUT /api/dj/profile", 
-                                              response.status_code == 200, 
-                                              f"Status: {response.status_code}")
+        payload = {
+            "description": "Updated description",
+            "assurance_rc_organisme": "MAIF"
+        }
+        response = session.put(f"{API_BASE}/dj/profile", json=payload)
+        success = response.status_code == 200
+        log_test("PUT /api/dj/profile", success)
     except Exception as e:
-        results["dj_profile_update"] = log_test("PUT /api/dj/profile", False, f"Error: {e}")
+        log_test("PUT /api/dj/profile", False, str(e))
     
     # GET /api/dj/dashboard
     try:
         response = session.get(f"{API_BASE}/dj/dashboard")
-        if response.status_code == 200:
-            dashboard = response.json()
-            results["dj_dashboard"] = log_test("GET /api/dj/dashboard", 
-                                             True, 
-                                             f"Views: {dashboard.get('total_views', 0)}")
-        else:
-            results["dj_dashboard"] = log_test("GET /api/dj/dashboard", 
-                                             False, 
-                                             f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and "is_locked" in data
+        is_locked = data.get("is_locked", False)
+        log_test("GET /api/dj/dashboard", success, f"is_locked: {is_locked} (expected: true for inactive subscription)")
     except Exception as e:
-        results["dj_dashboard"] = log_test("GET /api/dj/dashboard", False, f"Error: {e}")
-    
-    return results
+        log_test("GET /api/dj/dashboard", False, str(e))
 
-def test_contact_endpoints():
-    """Test Contact endpoints."""
-    print("\n🔍 Testing Contact Endpoints...")
-    results = {}
+def test_image_upload():
+    """Test image upload endpoints."""
+    print("\n🔍 7. IMAGE UPLOAD")
     
-    # First get a DJ ID to contact
-    dj_id = None
+    # POST /api/upload/image
+    try:
+        payload = {
+            "image": TEST_BASE64_IMAGE,
+            "type": "profile"
+        }
+        response = session.post(f"{API_BASE}/upload/image", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and "url" in data
+        uploaded_url = data.get("url") if success else None
+        log_test("POST /api/upload/image", success, f"URL: {uploaded_url}")
+    except Exception as e:
+        log_test("POST /api/upload/image", False, str(e))
+        uploaded_url = None
+    
+    # POST /api/upload/images (batch)
+    try:
+        payload = {
+            "images": [TEST_BASE64_IMAGE, "/api/uploads/existing.jpg"],
+            "type": "gallery"
+        }
+        response = session.post(f"{API_BASE}/upload/images", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and "urls" in data and len(data["urls"]) == 2
+        log_test("POST /api/upload/images", success, f"URLs: {len(data.get('urls', []))}")
+    except Exception as e:
+        log_test("POST /api/upload/images", False, str(e))
+    
+    # POST /api/upload/image (pass-through)
+    try:
+        payload = {
+            "image": "/api/uploads/existing.jpg"
+        }
+        response = session.post(f"{API_BASE}/upload/image", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and data.get("url") == "/api/uploads/existing.jpg"
+        log_test("POST /api/upload/image (pass-through)", success)
+    except Exception as e:
+        log_test("POST /api/upload/image (pass-through)", False, str(e))
+    
+    # GET uploaded image
+    if uploaded_url:
+        try:
+            response = session.get(f"{BACKEND_URL}{uploaded_url}")
+            success = response.status_code == 200 and "image" in response.headers.get("content-type", "")
+            log_test("GET uploaded image", success, f"Content-Type: {response.headers.get('content-type')}")
+        except Exception as e:
+            log_test("GET uploaded image", False, str(e))
+
+def test_dj_listing_public():
+    """Test DJ listing and public profile endpoints."""
+    print("\n🔍 8. DJ LISTING & PUBLIC PROFILE")
+    
+    # GET /api/djs
     try:
         response = session.get(f"{API_BASE}/djs")
-        if response.status_code == 200:
+        data = response.json()
+        success = response.status_code == 200 and "djs" in data
+        djs = data.get("djs", [])
+        log_test("GET /api/djs", success, f"Found {len(djs)} active DJs")
+    except Exception as e:
+        log_test("GET /api/djs", False, str(e))
+    
+    # GET /api/djs?code_postal=61000
+    try:
+        response = session.get(f"{API_BASE}/djs?code_postal=61000")
+        data = response.json()
+        success = response.status_code == 200
+        djs = data.get("djs", [])
+        log_test("GET /api/djs (postal search)", success, f"Found {len(djs)} DJs in 61000")
+    except Exception as e:
+        log_test("GET /api/djs (postal search)", False, str(e))
+    
+    # Find an active DJ for public profile test
+    active_dj_id = None
+    try:
+        response = session.get(f"{API_BASE}/djs")
+        data = response.json()
+        djs = data.get("djs", [])
+        if djs:
+            active_dj_id = djs[0].get("user_id")
+    except:
+        pass
+    
+    # GET /api/djs/{user_id} (public profile)
+    if active_dj_id:
+        try:
+            response = session.get(f"{API_BASE}/djs/{active_dj_id}")
             data = response.json()
-            djs = data.get('djs', [])
-            if djs:
-                dj_id = djs[0].get('user_id')
+            success = response.status_code == 200
+            # Check privacy - should NOT contain assurance fields
+            has_assurance = "assurance_rc_numero" in data or "assurance_rc_organisme" in data
+            privacy_ok = not has_assurance
+            log_test("GET /api/djs/{user_id} (privacy check)", success and privacy_ok, 
+                    f"Assurance fields hidden: {privacy_ok}")
+        except Exception as e:
+            log_test("GET /api/djs/{user_id} (privacy check)", False, str(e))
+
+def test_contact_requests():
+    """Test contact request endpoints."""
+    print("\n🔍 9. CONTACT REQUESTS")
+    
+    # Find an active DJ for contact test
+    active_dj_id = None
+    try:
+        response = session.get(f"{API_BASE}/djs")
+        data = response.json()
+        djs = data.get("djs", [])
+        if djs:
+            active_dj_id = djs[0].get("user_id")
     except:
         pass
     
     # POST /api/contact
-    if dj_id:
-        contact_payload = {
-            "dj_user_id": dj_id,
-            "client_nom": "Test Client",
-            "client_email": f"client_{TIMESTAMP}@test.com",
-            "client_telephone": "0123456789",
-            "type_evenement": "Mariage",
-            "date_evenement": "2024-06-15",
-            "lieu_evenement": "Paris",
-            "message": "Test contact for regression testing"
-        }
-        
+    if active_dj_id:
         try:
-            response = session.post(f"{API_BASE}/contact", json=contact_payload)
-            results["contact_create"] = log_test("POST /api/contact", 
-                                                response.status_code == 200, 
-                                                f"Status: {response.status_code}")
+            payload = {
+                "dj_user_id": active_dj_id,
+                "client_nom": "Client Test",
+                "client_email": "client@test.com",
+                "client_telephone": "0123456789",
+                "type_evenement": "Mariage",
+                "date_evenement": "2024-06-15",
+                "lieu_evenement": "Paris",
+                "message": "Test contact request"
+            }
+            response = session.post(f"{API_BASE}/contact", json=payload)
+            success = response.status_code == 200
+            log_test("POST /api/contact", success)
         except Exception as e:
-            results["contact_create"] = log_test("POST /api/contact", False, f"Error: {e}")
-    else:
-        results["contact_create"] = log_test("POST /api/contact", False, "No DJ ID available")
+            log_test("POST /api/contact", False, str(e))
     
-    # GET /api/dj/contacts (requires DJ authentication)
+    # GET /api/dj/contacts (requires DJ auth)
     try:
         response = session.get(f"{API_BASE}/dj/contacts")
-        if response.status_code == 200:
-            contacts = response.json()
-            results["dj_contacts"] = log_test("GET /api/dj/contacts", 
-                                            True, 
-                                            f"Found {len(contacts)} contacts")
+        success = response.status_code == 200
+        if success:
+            data = response.json()
+            # Response is a direct list, not wrapped in an object
+            contacts = data if isinstance(data, list) else []
+            log_test("GET /api/dj/contacts", success, f"Found {len(contacts)} contacts")
         else:
-            results["dj_contacts"] = log_test("GET /api/dj/contacts", 
-                                            False, 
-                                            f"Status: {response.status_code}")
+            log_test("GET /api/dj/contacts", success)
     except Exception as e:
-        results["dj_contacts"] = log_test("GET /api/dj/contacts", False, f"Error: {e}")
-    
-    return results
+        log_test("GET /api/dj/contacts", False, str(e))
 
-def test_review_endpoints():
-    """Test Review endpoints."""
-    print("\n🔍 Testing Review Endpoints...")
-    results = {}
+def test_reviews():
+    """Test review system endpoints."""
+    print("\n🔍 10. REVIEWS")
     
-    # Get a DJ ID for reviews
-    dj_id = None
+    # Find an active DJ for review test
+    active_dj_id = None
     try:
         response = session.get(f"{API_BASE}/djs")
-        if response.status_code == 200:
-            data = response.json()
-            djs = data.get('djs', [])
-            if djs:
-                dj_id = djs[0].get('user_id')
+        data = response.json()
+        djs = data.get("djs", [])
+        if djs:
+            active_dj_id = djs[0].get("user_id")
     except:
         pass
     
     # POST /api/reviews
-    if dj_id:
-        review_payload = {
-            "dj_user_id": dj_id,
-            "client_nom": "Test Reviewer",
-            "client_email": f"reviewer_{TIMESTAMP}@test.com",
-            "note": 5,
-            "commentaire": "Excellent DJ for regression testing",
-            "type_evenement": "Mariage"
-        }
-        
+    if active_dj_id:
         try:
-            response = session.post(f"{API_BASE}/reviews", json=review_payload)
-            results["review_create"] = log_test("POST /api/reviews", 
-                                              response.status_code == 200, 
-                                              f"Status: {response.status_code}")
+            payload = {
+                "dj_user_id": active_dj_id,
+                "client_nom": "Client Test",
+                "client_email": "client@test.com",
+                "note": 5,
+                "commentaire": "Excellent DJ!",
+                "type_evenement": "Mariage"
+            }
+            response = session.post(f"{API_BASE}/reviews", json=payload)
+            success = response.status_code == 200
+            log_test("POST /api/reviews", success)
         except Exception as e:
-            results["review_create"] = log_test("POST /api/reviews", False, f"Error: {e}")
+            log_test("POST /api/reviews", False, str(e))
         
         # GET /api/djs/{user_id}/reviews
         try:
-            response = session.get(f"{API_BASE}/djs/{dj_id}/reviews")
-            if response.status_code == 200:
-                reviews = response.json()
-                results["dj_reviews"] = log_test(f"GET /api/djs/{dj_id}/reviews", 
-                                               True, 
-                                               f"Found {len(reviews)} reviews")
-            else:
-                results["dj_reviews"] = log_test(f"GET /api/djs/{dj_id}/reviews", 
-                                               False, 
-                                               f"Status: {response.status_code}")
-        except Exception as e:
-            results["dj_reviews"] = log_test(f"GET /api/djs/{dj_id}/reviews", False, f"Error: {e}")
-    else:
-        results["review_create"] = log_test("POST /api/reviews", False, "No DJ ID available")
-        results["dj_reviews"] = log_test("GET /api/djs/{id}/reviews", False, "No DJ ID available")
-    
-    # GET /api/dj/reviews/pending (requires DJ auth)
-    try:
-        response = session.get(f"{API_BASE}/dj/reviews/pending")
-        results["dj_reviews_pending"] = log_test("GET /api/dj/reviews/pending", 
-                                               response.status_code == 200, 
-                                               f"Status: {response.status_code}")
-    except Exception as e:
-        results["dj_reviews_pending"] = log_test("GET /api/dj/reviews/pending", False, f"Error: {e}")
-    
-    # GET /api/dj/reviews/all (requires DJ auth)
-    try:
-        response = session.get(f"{API_BASE}/dj/reviews/all")
-        results["dj_reviews_all"] = log_test("GET /api/dj/reviews/all", 
-                                           response.status_code == 200, 
-                                           f"Status: {response.status_code}")
-    except Exception as e:
-        results["dj_reviews_all"] = log_test("GET /api/dj/reviews/all", False, f"Error: {e}")
-    
-    return results
-
-def test_boost_endpoints():
-    """Test Boost endpoints."""
-    print("\n🔍 Testing Boost Endpoints...")
-    results = {}
-    
-    # GET /api/boost/plans
-    try:
-        response = session.get(f"{API_BASE}/boost/plans")
-        if response.status_code == 200:
-            plans = response.json()
-            results["boost_plans"] = log_test("GET /api/boost/plans", 
-                                            True, 
-                                            f"Found {len(plans)} plans")
-        else:
-            results["boost_plans"] = log_test("GET /api/boost/plans", 
-                                            False, 
-                                            f"Status: {response.status_code}")
-    except Exception as e:
-        results["boost_plans"] = log_test("GET /api/boost/plans", False, f"Error: {e}")
-    
-    # GET /api/boost/status (requires DJ auth)
-    try:
-        response = session.get(f"{API_BASE}/boost/status")
-        results["boost_status"] = log_test("GET /api/boost/status", 
-                                         response.status_code in [200, 401], 
-                                         f"Status: {response.status_code}")
-    except Exception as e:
-        results["boost_status"] = log_test("GET /api/boost/status", False, f"Error: {e}")
-    
-    # POST /api/boost/create-checkout (requires DJ auth)
-    boost_payload = {"plan": "1_week", "origin_url": "https://test.com"}
-    try:
-        response = session.post(f"{API_BASE}/boost/create-checkout", json=boost_payload)
-        if response.status_code == 200:
+            response = session.get(f"{API_BASE}/djs/{active_dj_id}/reviews")
             data = response.json()
-            results["boost_checkout"] = log_test("POST /api/boost/create-checkout", 
-                                               True, 
-                                               f"Checkout created: {data.get('checkout_url', '')[:50]}...")
-        else:
-            results["boost_checkout"] = log_test("POST /api/boost/create-checkout", 
-                                               False, 
-                                               f"Status: {response.status_code}, Response: {response.text}")
-    except Exception as e:
-        results["boost_checkout"] = log_test("POST /api/boost/create-checkout", False, f"Error: {e}")
-    
-    return results
+            success = response.status_code == 200
+            # Response is a direct list, not wrapped in an object
+            reviews = data if isinstance(data, list) else []
+            log_test("GET /api/djs/{user_id}/reviews", success, f"Found {len(reviews)} reviews")
+        except Exception as e:
+            log_test("GET /api/djs/{user_id}/reviews", False, str(e))
 
-def test_subscription_endpoints():
-    """Test Subscription/Stripe endpoints."""
-    print("\n🔍 Testing Subscription/Stripe Endpoints...")
-    results = {}
+def test_subscription_stripe():
+    """Test subscription and Stripe endpoints."""
+    print("\n🔍 11. SUBSCRIPTION & STRIPE")
     
     # GET /api/subscription/plans
     try:
         response = session.get(f"{API_BASE}/subscription/plans")
-        if response.status_code == 200:
-            plans = response.json()
-            results["subscription_plans"] = log_test("GET /api/subscription/plans", 
-                                                   True, 
-                                                   f"Found {len(plans)} plans")
-        else:
-            results["subscription_plans"] = log_test("GET /api/subscription/plans", 
-                                                   False, 
-                                                   f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and len(data) == 2
+        plans = [plan.get("name") for plan in data]
+        log_test("GET /api/subscription/plans", success, f"Plans: {plans}")
     except Exception as e:
-        results["subscription_plans"] = log_test("GET /api/subscription/plans", False, f"Error: {e}")
+        log_test("GET /api/subscription/plans", False, str(e))
     
-    # POST /api/subscription/create-checkout (requires auth)
-    checkout_payload = {"plan": "monthly", "origin_url": "https://test.com"}
+    # POST /api/subscription/create-checkout
     try:
-        response = session.post(f"{API_BASE}/subscription/create-checkout", json=checkout_payload)
-        if response.status_code == 200:
-            data = response.json()
-            checkout_url = data.get('checkout_url', '')
-            results["subscription_checkout"] = log_test("POST /api/subscription/create-checkout", 
-                                                      'checkout.stripe.com' in checkout_url, 
-                                                      f"Checkout URL: {checkout_url[:50]}...")
-        else:
-            results["subscription_checkout"] = log_test("POST /api/subscription/create-checkout", 
-                                                      False, 
-                                                      f"Status: {response.status_code}, Response: {response.text}")
+        payload = {
+            "origin_url": "https://dj-directory-fr.preview.emergentagent.com",
+            "plan": "monthly"
+        }
+        response = session.post(f"{API_BASE}/subscription/create-checkout", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and "checkout_url" in data and "session_id" in data
+        checkout_url = data.get("checkout_url", "")
+        is_stripe_url = checkout_url.startswith("https://checkout.stripe.com/")
+        log_test("POST /api/subscription/create-checkout", success and is_stripe_url, 
+                f"Stripe URL: {is_stripe_url}")
     except Exception as e:
-        results["subscription_checkout"] = log_test("POST /api/subscription/create-checkout", False, f"Error: {e}")
-    
-    return results
+        log_test("POST /api/subscription/create-checkout", False, str(e))
 
-def test_zone_endpoints():
-    """Test Zone endpoints."""
-    print("\n🔍 Testing Zone Endpoints...")
-    results = {}
+def test_boost():
+    """Test boost system endpoints."""
+    print("\n🔍 12. BOOST SYSTEM")
     
-    # GET /api/dj/zone-status (requires DJ auth)
+    # GET /api/boost/plans
+    try:
+        response = session.get(f"{API_BASE}/boost/plans")
+        data = response.json()
+        success = response.status_code == 200 and len(data) == 3
+        plans = [f"{plan.get('name')}: {plan.get('price')}€" for plan in data]
+        log_test("GET /api/boost/plans", success, f"Plans: {plans}")
+    except Exception as e:
+        log_test("GET /api/boost/plans", False, str(e))
+    
+    # GET /api/boost/status
+    try:
+        response = session.get(f"{API_BASE}/boost/status")
+        success = response.status_code == 200
+        if success:
+            data = response.json()
+            boost_active = data.get("boost_active", False)
+            log_test("GET /api/boost/status", success, f"boost_active: {boost_active}")
+        else:
+            log_test("GET /api/boost/status", success)
+    except Exception as e:
+        log_test("GET /api/boost/status", False, str(e))
+    
+    # POST /api/boost/create-checkout
+    try:
+        payload = {
+            "origin_url": "https://dj-directory-fr.preview.emergentagent.com",
+            "plan": "1_week"
+        }
+        response = session.post(f"{API_BASE}/boost/create-checkout", json=payload)
+        data = response.json()
+        success = response.status_code == 200 and "checkout_url" in data
+        checkout_url = data.get("checkout_url", "")
+        is_stripe_url = checkout_url.startswith("https://checkout.stripe.com/")
+        log_test("POST /api/boost/create-checkout", success and is_stripe_url, 
+                f"Stripe URL: {is_stripe_url}")
+    except Exception as e:
+        log_test("POST /api/boost/create-checkout", False, str(e))
+
+def test_zone_management():
+    """Test zone management endpoints."""
+    print("\n🔍 13. ZONE MANAGEMENT")
+    
+    # GET /api/dj/zone-status
     try:
         response = session.get(f"{API_BASE}/dj/zone-status")
-        results["zone_status"] = log_test("GET /api/dj/zone-status", 
-                                        response.status_code in [200, 401], 
-                                        f"Status: {response.status_code}")
+        success = response.status_code == 200
+        if success:
+            data = response.json()
+            log_test("GET /api/dj/zone-status", success, f"Zone config returned")
+        else:
+            log_test("GET /api/dj/zone-status", success)
     except Exception as e:
-        results["zone_status"] = log_test("GET /api/dj/zone-status", False, f"Error: {e}")
+        log_test("GET /api/dj/zone-status", False, str(e))
     
-    # GET /api/dj/available-departments (requires DJ auth)
+    # GET /api/dj/available-departments
     try:
         response = session.get(f"{API_BASE}/dj/available-departments")
-        results["available_departments"] = log_test("GET /api/dj/available-departments", 
-                                                  response.status_code in [200, 401], 
-                                                  f"Status: {response.status_code}")
+        data = response.json()
+        success = response.status_code == 200 and isinstance(data, list)
+        log_test("GET /api/dj/available-departments", success, f"Found {len(data)} departments")
     except Exception as e:
-        results["available_departments"] = log_test("GET /api/dj/available-departments", False, f"Error: {e}")
-    
-    return results
+        log_test("GET /api/dj/available-departments", False, str(e))
 
-def main():
-    """Run comprehensive regression test suite."""
-    print("🚀 CRITICAL REGRESSION TEST - Server.py Refactoring Validation")
-    print(f"Backend URL: {BACKEND_URL}")
-    print(f"Test Email: {TEST_EMAIL}")
-    print("=" * 80)
+def test_privacy_checks():
+    """Test privacy protection for assurance fields."""
+    print("\n🔍 14. PRIVACY CHECKS")
     
-    all_results = {}
+    # Find an active DJ
+    active_dj_id = None
+    try:
+        response = session.get(f"{API_BASE}/djs")
+        data = response.json()
+        djs = data.get("djs", [])
+        if djs:
+            active_dj_id = djs[0].get("user_id")
+    except:
+        pass
     
-    # Run all test suites
-    test_suites = [
-        ("Health & Basic", test_health_basic),
-        ("Authentication", test_auth_endpoints),
-        ("SIRET Verification", test_siret_endpoint),
-        ("Geographic APIs", test_geo_endpoints),
-        ("Image Upload", test_image_upload),
-        ("DJ Profiles", test_dj_endpoints),
-        ("Contact System", test_contact_endpoints),
-        ("Review System", test_review_endpoints),
-        ("Boost System", test_boost_endpoints),
-        ("Subscription/Stripe", test_subscription_endpoints),
-        ("Zone Management", test_zone_endpoints)
-    ]
-    
-    for suite_name, test_func in test_suites:
+    # GET /api/djs/{user_id} - should NOT contain assurance fields
+    if active_dj_id:
         try:
-            results = test_func()
-            all_results[suite_name] = results
+            response = session.get(f"{API_BASE}/djs/{active_dj_id}")
+            data = response.json()
+            has_assurance_numero = "assurance_rc_numero" in data
+            has_assurance_organisme = "assurance_rc_organisme" in data
+            success = response.status_code == 200 and not has_assurance_numero and not has_assurance_organisme
+            log_test("Privacy: GET /api/djs/{user_id}", success, 
+                    f"Assurance fields hidden: {not (has_assurance_numero or has_assurance_organisme)}")
         except Exception as e:
-            print(f"❌ {suite_name} test suite failed: {e}")
-            all_results[suite_name] = {"suite_error": False}
+            log_test("Privacy: GET /api/djs/{user_id}", False, str(e))
     
-    # Generate comprehensive summary
+    # GET /api/djs - list should NOT contain assurance fields
+    try:
+        response = session.get(f"{API_BASE}/djs")
+        data = response.json()
+        djs = data.get("djs", [])
+        has_assurance_fields = False
+        for dj in djs:
+            if "assurance_rc_numero" in dj or "assurance_rc_organisme" in dj:
+                has_assurance_fields = True
+                break
+        success = response.status_code == 200 and not has_assurance_fields
+        log_test("Privacy: GET /api/djs (list)", success, 
+                f"Assurance fields hidden in list: {not has_assurance_fields}")
+    except Exception as e:
+        log_test("Privacy: GET /api/djs (list)", False, str(e))
+
+def test_error_handling():
+    """Test error handling scenarios."""
+    print("\n🔍 15. ERROR HANDLING")
+    
+    # GET /api/djs/nonexistent_user_id
+    try:
+        response = session.get(f"{API_BASE}/djs/nonexistent_user_id")
+        success = response.status_code == 404
+        log_test("GET /api/djs/nonexistent_user_id", success, f"Status: {response.status_code}")
+    except Exception as e:
+        log_test("GET /api/djs/nonexistent_user_id", False, str(e))
+    
+    # POST /api/auth/login-email (wrong credentials)
+    try:
+        payload = {
+            "email": "wrong@wrong.com",
+            "password": "wrong"
+        }
+        response = session.post(f"{API_BASE}/auth/login-email", json=payload)
+        success = response.status_code == 401
+        log_test("POST /api/auth/login-email (wrong creds)", success, f"Status: {response.status_code}")
+    except Exception as e:
+        log_test("POST /api/auth/login-email (wrong creds)", False, str(e))
+    
+    # Create a new session without auth for testing protected endpoints
+    unauth_session = requests.Session()
+    unauth_session.timeout = 10
+    
+    # POST /api/dj/register without auth
+    try:
+        payload = {"nom": "Test"}
+        response = unauth_session.post(f"{API_BASE}/dj/register", json=payload)
+        # Accept both 401 (auth error) and 422 (validation error) as valid responses
+        success = response.status_code in [401, 422]
+        log_test("POST /api/dj/register (no auth)", success, f"Status: {response.status_code}")
+    except Exception as e:
+        log_test("POST /api/dj/register (no auth)", False, str(e))
+    
+    # GET /api/dj/contacts without auth
+    try:
+        response = unauth_session.get(f"{API_BASE}/dj/contacts")
+        success = response.status_code == 401
+        log_test("GET /api/dj/contacts (no auth)", success, f"Status: {response.status_code}")
+    except Exception as e:
+        log_test("GET /api/dj/contacts (no auth)", False, str(e))
+
+def print_summary():
+    """Print comprehensive test summary."""
     print("\n" + "=" * 80)
     print("📋 COMPREHENSIVE REGRESSION TEST SUMMARY")
     print("=" * 80)
     
-    total_tests = 0
-    passed_tests = 0
-    failed_tests = []
+    total_tests = len(test_results)
+    passed_tests = sum(1 for result in test_results.values() if result["success"])
+    failed_tests = total_tests - passed_tests
     
-    for suite_name, results in all_results.items():
-        print(f"\n🔍 {suite_name}:")
-        suite_passed = 0
-        suite_total = 0
-        
-        for test_name, result in results.items():
-            suite_total += 1
-            total_tests += 1
-            
-            if result:
-                suite_passed += 1
-                passed_tests += 1
-                print(f"  ✅ {test_name}")
-            else:
-                failed_tests.append(f"{suite_name}: {test_name}")
-                print(f"  ❌ {test_name}")
-        
-        print(f"  📊 {suite_passed}/{suite_total} passed")
+    print(f"Total Tests: {total_tests}")
+    print(f"✅ Passed: {passed_tests}")
+    print(f"❌ Failed: {failed_tests}")
+    print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
     
-    print(f"\n" + "=" * 80)
-    print(f"🎯 OVERALL RESULTS: {passed_tests}/{total_tests} tests passed")
+    if failed_tests > 0:
+        print(f"\n❌ FAILED TESTS ({failed_tests}):")
+        print("-" * 40)
+        for test_name, result in test_results.items():
+            if not result["success"]:
+                print(f"• {test_name}")
+                if result["details"]:
+                    print(f"  └─ {result['details']}")
     
-    if failed_tests:
-        print(f"\n❌ FAILED TESTS ({len(failed_tests)}):")
-        for failed in failed_tests:
-            print(f"  • {failed}")
+    print(f"\n✅ PASSED TESTS ({passed_tests}):")
+    print("-" * 40)
+    for test_name, result in test_results.items():
+        if result["success"]:
+            print(f"• {test_name}")
     
-    success_rate = (passed_tests / total_tests * 100) if total_tests > 0 else 0
+    return passed_tests == total_tests
+
+def main():
+    """Run comprehensive regression test suite."""
+    print("🚀 DJ CONNECT FRANCE - COMPREHENSIVE REGRESSION TEST")
+    print(f"Backend URL: {BACKEND_URL}")
+    print(f"Test Email: {TEST_EMAIL}")
+    print("=" * 80)
     
-    if success_rate >= 90:
-        print(f"\n🎉 REGRESSION TEST PASSED! ({success_rate:.1f}% success rate)")
-        print("✅ Server.py refactoring appears successful - all critical endpoints working")
-        return True
-    elif success_rate >= 75:
-        print(f"\n⚠️ REGRESSION TEST PARTIAL SUCCESS ({success_rate:.1f}% success rate)")
-        print("🔧 Some endpoints need attention but core functionality intact")
-        return True
+    # Run all test suites
+    test_health_static()
+    test_auth_email()
+    test_siret_verification()
+    test_geo_endpoints()
+    test_dj_registration()
+    test_dj_profile_management()
+    test_image_upload()
+    test_dj_listing_public()
+    test_contact_requests()
+    test_reviews()
+    test_subscription_stripe()
+    test_boost()
+    test_zone_management()
+    test_privacy_checks()
+    test_error_handling()
+    
+    # Print summary
+    all_passed = print_summary()
+    
+    if all_passed:
+        print("\n🎉 ALL TESTS PASSED! Backend is fully functional.")
     else:
-        print(f"\n💥 REGRESSION TEST FAILED! ({success_rate:.1f}% success rate)")
-        print("🚨 Critical issues detected - refactoring may have broken core functionality")
-        return False
+        print("\n⚠️ Some tests failed. See details above.")
+    
+    return all_passed
 
 if __name__ == "__main__":
     success = main()
