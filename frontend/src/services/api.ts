@@ -306,6 +306,14 @@ class ApiService {
     return this.request<{ djs: any[]; total: number }>('/api/admin/djs');
   }
 
+  async adminGetStats() {
+    return this.request<any>('/api/admin/stats');
+  }
+
+  async adminGetContactRequests() {
+    return this.request<{ requests: any[]; total: number }>('/api/admin/contact-requests');
+  }
+
   // Reviews APIs
   async submitReview(data: { dj_user_id: string; client_nom: string; client_email: string; note: number; commentaire: string; type_evenement?: string; date_evenement?: string }) {
     return this.request<{ message: string; review_id: string }>('/api/reviews', {

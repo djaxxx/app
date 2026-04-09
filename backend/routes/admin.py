@@ -18,6 +18,37 @@ async def admin_list_djs(request: Request):
     return {"djs": djs, "total": len(djs)}
 
 
+@router.get("/admin/stats")
+async def admin_stats(request: Request):
+    """Admin: Get platform statistics"""
+    await require_admin(request)
+    total_djs = await db.dj_profiles.count_documents({})
+    active_djs = await db.dj_profiles.count_documents({"is_active": True, "subscription_status": {"$in": ["active", "trial"]}})
+    trial_djs = await db.dj_profiles.count_documents({"subscription_status": "trial"})
+    expired_djs = await db.dj_profiles.count_documents({"subscription_status": {"$in": ["expired", "inactive"]}})
+    boosted_djs = await db.dj_profiles.count_documents({"boost_active": {"$ne": False, "$exists": True}})
+    total_contacts = await db.contact_requests.count_documents({})
+    total_users = await db.users.count_documents({})
+    return {
+        "total_djs": total_djs, "active_djs": active_djs,
+        "trial_djs": trial_djs, "expired_djs": expired_djs,
+        "boosted_djs": boosted_djs, "total_contacts": total_contacts,
+        "total_users": total_users,
+    }
+
+
+@router.get("/admin/contact-requests")
+async def admin_contact_requests(request: Request):
+    """Admin: List all contact requests from clients to DJs"""
+    await require_admin(request)
+    requests_list = await db.contact_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    # Enrich with DJ names
+    for req in requests_list:
+        dj = await db.dj_profiles.find_one({"user_id": req.get("dj_user_id")}, {"nom_de_scene": 1, "_id": 0})
+        req["dj_nom"] = dj.get("nom_de_scene", "Inconnu") if dj else "Inconnu"
+    return {"requests": requests_list, "total": len(requests_list)}
+
+
 @router.post("/admin/create-dj")
 async def admin_create_dj(request: Request):
     """Admin: Create a DJ profile with free active subscription"""
