@@ -89,6 +89,16 @@ export default function AdminScreen() {
     }
   };
 
+  const handleToggleBoost = async (userId: string) => {
+    try {
+      const result = await api.adminToggleBoost(userId);
+      showAlert('Succès', result.message);
+      loadDJs();
+    } catch (error: any) {
+      showAlert('Erreur', error.message);
+    }
+  };
+
   const handleDeleteDJ = async (userId: string, name: string) => {
     const doDelete = async () => {
       try {
@@ -399,6 +409,12 @@ export default function AdminScreen() {
                       <Text style={styles.adminBadgeText}>Ajouté par admin</Text>
                     </View>
                   )}
+                  {dj.boost_active && (
+                    <View style={styles.boostBadge}>
+                      <Ionicons name="star" size={11} color="#000" />
+                      <Text style={styles.boostBadgeText}>Boosté</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.djActions}>
@@ -416,6 +432,16 @@ export default function AdminScreen() {
                     />
                     <Text style={styles.actionButtonText}>
                       {dj.subscription_status === 'active' ? 'Désactiver' : 'Activer'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, dj.boost_active ? styles.deactivateButton : styles.boostButton]}
+                    onPress={() => handleToggleBoost(dj.user_id)}
+                  >
+                    <Ionicons name="star" size={16} color={dj.boost_active ? '#fff' : '#000'} />
+                    <Text style={[styles.actionButtonText, !dj.boost_active && { color: '#000' }]}>
+                      {dj.boost_active ? 'Retirer boost' : 'Booster'}
                     </Text>
                   </TouchableOpacity>
 
@@ -662,6 +688,23 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#EF4444',
+  },
+  boostButton: {
+    backgroundColor: '#FFD700',
+  },
+  boostBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 3,
+  },
+  boostBadgeText: {
+    color: '#000',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   actionButtonText: {
     color: '#fff',

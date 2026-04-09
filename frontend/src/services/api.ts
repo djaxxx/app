@@ -309,6 +309,12 @@ class ApiService {
     });
   }
 
+  async adminToggleBoost(userId: string) {
+    return this.request<{ message: string; boost_active: boolean }>(`/api/admin/djs/${userId}/toggle-boost`, {
+      method: 'PUT',
+    });
+  }
+
   async adminDeleteDJ(userId: string) {
     return this.request<{ message: string }>(`/api/admin/djs/${userId}`, {
       method: 'DELETE',
