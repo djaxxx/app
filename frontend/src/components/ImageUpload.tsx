@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../services/api';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 // Helper: convert blob/uri to base64 on web
 const uriToBase64 = async (uri: string): Promise<string> => {
@@ -72,12 +74,21 @@ export function ImageUpload({
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+        let base64Data: string;
         if (asset.base64) {
-          onImageChange(`data:image/jpeg;base64,${asset.base64}`);
+          base64Data = `data:image/jpeg;base64,${asset.base64}`;
         } else if (asset.uri) {
-          // Web: convert blob URI to base64
-          const base64 = await uriToBase64(asset.uri);
-          onImageChange(base64);
+          base64Data = await uriToBase64(asset.uri);
+        } else {
+          return;
+        }
+        // Upload to server and get URL
+        try {
+          const url = await api.uploadImage(base64Data, 'profile');
+          onImageChange(url);
+        } catch (uploadErr) {
+          console.error('Upload error, falling back to base64:', uploadErr);
+          onImageChange(base64Data);
         }
       }
     } catch (error) {
@@ -115,11 +126,21 @@ export function ImageUpload({
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
+        let base64Data: string;
         if (asset.base64) {
-          onImageChange(`data:image/jpeg;base64,${asset.base64}`);
+          base64Data = `data:image/jpeg;base64,${asset.base64}`;
         } else if (asset.uri) {
-          const base64 = await uriToBase64(asset.uri);
-          onImageChange(base64);
+          base64Data = await uriToBase64(asset.uri);
+        } else {
+          return;
+        }
+        // Upload to server and get URL
+        try {
+          const url = await api.uploadImage(base64Data, 'profile');
+          onImageChange(url);
+        } catch (uploadErr) {
+          console.error('Upload error, falling back to base64:', uploadErr);
+          onImageChange(base64Data);
         }
       }
     } catch (error) {
@@ -164,7 +185,7 @@ export function ImageUpload({
           <ActivityIndicator size="large" color="#8B5CF6" />
         ) : image ? (
           <Image
-            source={{ uri: image }}
+            source={{ uri: resolveImageUrl(image) || image }}
             style={[
               styles.image,
               { width: size, height: size },
@@ -294,7 +315,14 @@ export function GalleryUpload({
         } else {
           return;
         }
-        onImagesChange([...images, imageData]);
+        // Upload to server and get URL
+        try {
+          const url = await api.uploadImage(imageData, 'gallery');
+          onImagesChange([...images, url]);
+        } catch (uploadErr) {
+          console.error('Gallery upload error, falling back to base64:', uploadErr);
+          onImagesChange([...images, imageData]);
+        }
       }
     } catch (error) {
       console.error('Image picker error:', error);
@@ -337,7 +365,7 @@ export function GalleryUpload({
       <View style={styles.galleryGrid}>
         {images.map((image, index) => (
           <View key={index} style={styles.galleryItem}>
-            <Image source={{ uri: image }} style={styles.galleryImage} />
+            <Image source={{ uri: resolveImageUrl(image) || image }} style={styles.galleryImage} />
             <TouchableOpacity
               style={styles.removeButton}
               onPress={() => removeImage(index)}

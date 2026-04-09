@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../src/services/api';
+import { resolveImageUrl } from '../../src/utils/imageUrl';
 import { Button } from '../../src/components/Button';
 import { DJProfile, Review } from '../../src/types';
 
@@ -148,7 +149,7 @@ export default function DJProfileScreen() {
         {/* Hero Image */}
         <View style={styles.heroSection}>
           {dj.photo_profil ? (
-            <Image source={{ uri: dj.photo_profil }} style={styles.heroImage} />
+            <Image source={{ uri: resolveImageUrl(dj.photo_profil) || '' }} style={styles.heroImage} />
           ) : (
             <View style={styles.placeholderHero}>
               <Ionicons name="person" size={80} color="#666" />
@@ -303,13 +304,13 @@ export default function DJProfileScreen() {
                 <TouchableOpacity
                   key={`photo-${index}`}
                   onPress={() => {
-                    setSelectedImage(photo);
+                    setSelectedImage(resolveImageUrl(photo) || photo);
                     setShowImageModal(true);
                   }}
                   activeOpacity={0.8}
                 >
                   <Image
-                    source={{ uri: photo }}
+                    source={{ uri: resolveImageUrl(photo) || '' }}
                     style={styles.galleryImage}
                     resizeMode="cover"
                   />

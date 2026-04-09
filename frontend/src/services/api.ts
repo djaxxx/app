@@ -358,6 +358,41 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Image Upload (saves to disk, avoids MongoDB 16MB limit)
+  async uploadImage(base64Image: string, type: 'profile' | 'gallery' = 'gallery'): Promise<string> {
+    // Skip upload if already a URL
+    if (base64Image.startsWith('/api/uploads/') || base64Image.startsWith('http')) {
+      return base64Image;
+    }
+    const result = await this.request<{ url: string }>('/api/upload/image', {
+      method: 'POST',
+      body: JSON.stringify({ image: base64Image, type }),
+    });
+    return result.url;
+  }
+
+  async uploadImages(base64Images: string[], type: 'profile' | 'gallery' = 'gallery'): Promise<string[]> {
+    // Filter: only upload base64 images, keep existing URLs
+    const toUpload = base64Images.filter(img => img.startsWith('data:'));
+    const existing = base64Images.filter(img => !img.startsWith('data:'));
+    
+    if (toUpload.length === 0) return base64Images;
+    
+    const result = await this.request<{ urls: string[] }>('/api/upload/images', {
+      method: 'POST',
+      body: JSON.stringify({ images: toUpload, type }),
+    });
+    
+    // Merge: keep order — replace data: URIs with uploaded URLs
+    let uploadIndex = 0;
+    return base64Images.map(img => {
+      if (img.startsWith('data:')) {
+        return result.urls[uploadIndex++] || img;
+      }
+      return img;
+    });
+  }
 }
 
 export const api = new ApiService();

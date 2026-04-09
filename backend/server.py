@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, Response
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -8,6 +9,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Dict, Any
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 import httpx
 from enum import Enum
@@ -35,6 +37,13 @@ STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
 # Create the main app
 app = FastAPI(title="DJ Match France API")
+
+# Uploads directory for images (avoids 16MB BSON limit)
+UPLOADS_DIR = ROOT_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
+
+# Mount static files for uploaded images
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -342,6 +351,144 @@ async def root():
 @api_router.get("/health")
 async def health():
     return {"status": "healthy"}
+
+# ===================
+# IMAGE UPLOAD (saves to disk, avoids 16MB BSON limit)
+# ===================
+
+def save_base64_image(base64_data: str, prefix: str = "img") -> str:
+    """Save a base64-encoded image to disk and return the URL path."""
+    try:
+        # Handle data URI format: data:image/jpeg;base64,XXXXXX
+        if base64_data.startswith("data:"):
+            header, encoded = base64_data.split(",", 1)
+            # Extract extension from header
+            if "png" in header:
+                ext = "png"
+            elif "webp" in header:
+                ext = "webp"
+            elif "gif" in header:
+                ext = "gif"
+            else:
+                ext = "jpg"
+        else:
+            encoded = base64_data
+            ext = "jpg"
+        
+        # Decode
+        image_bytes = base64.b64decode(encoded)
+        
+        # Generate unique filename
+        filename = f"{prefix}_{uuid.uuid4().hex[:12]}.{ext}"
+        filepath = UPLOADS_DIR / filename
+        
+        with open(filepath, "wb") as f:
+            f.write(image_bytes)
+        
+        # Return URL path (will be served by StaticFiles mount)
+        return f"/api/uploads/{filename}"
+    except Exception as e:
+        logger.error(f"Error saving image: {e}")
+        raise HTTPException(status_code=400, detail=f"Erreur de sauvegarde image: {str(e)}")
+
+@api_router.post("/upload/image")
+async def upload_image(request: Request):
+    """Upload a base64 image, save to disk, return URL.
+    Accepts: { "image": "data:image/jpeg;base64,..." , "type": "profile"|"gallery" }
+    """
+    body = await request.json()
+    image_data = body.get("image", "")
+    image_type = body.get("type", "gallery")
+    
+    if not image_data:
+        raise HTTPException(status_code=400, detail="Aucune image fournie")
+    
+    # Check if it's already a URL (not base64) — just return it
+    if image_data.startswith("/api/uploads/") or image_data.startswith("http"):
+        return {"url": image_data}
+    
+    prefix = "profile" if image_type == "profile" else "gallery"
+    url = save_base64_image(image_data, prefix)
+    return {"url": url}
+
+@api_router.post("/upload/images")
+async def upload_images(request: Request):
+    """Upload multiple base64 images at once.
+    Accepts: { "images": ["data:image/jpeg;base64,...", ...], "type": "gallery" }
+    """
+    body = await request.json()
+    images_data = body.get("images", [])
+    image_type = body.get("type", "gallery")
+    
+    if not images_data:
+        raise HTTPException(status_code=400, detail="Aucune image fournie")
+    
+    prefix = "profile" if image_type == "profile" else "gallery"
+    urls = []
+    for img in images_data:
+        if img.startswith("/api/uploads/") or img.startswith("http"):
+            urls.append(img)
+        else:
+            url = save_base64_image(img, prefix)
+            urls.append(url)
+    
+    return {"urls": urls}
+
+async def migrate_base64_to_files():
+    """One-time migration: convert existing base64 images in MongoDB to files on disk."""
+    try:
+        cursor = db.dj_profiles.find({})
+        migrated = 0
+        async for dj in cursor:
+            update_fields = {}
+            
+            # Migrate photo_profil
+            photo = dj.get("photo_profil", "")
+            if photo and photo.startswith("data:"):
+                try:
+                    url = save_base64_image(photo, "profile")
+                    update_fields["photo_profil"] = url
+                except Exception as e:
+                    logger.error(f"Migration photo_profil failed for {dj.get('user_id')}: {e}")
+            
+            # Migrate galerie_photos
+            galerie = dj.get("galerie_photos", [])
+            new_galerie = []
+            galerie_changed = False
+            for img in galerie:
+                if img and img.startswith("data:"):
+                    try:
+                        url = save_base64_image(img, "gallery")
+                        new_galerie.append(url)
+                        galerie_changed = True
+                    except Exception as e:
+                        logger.error(f"Migration galerie failed for {dj.get('user_id')}: {e}")
+                        new_galerie.append(img)  # keep original on error
+                else:
+                    new_galerie.append(img)
+            
+            if galerie_changed:
+                update_fields["galerie_photos"] = new_galerie
+            
+            if update_fields:
+                await db.dj_profiles.update_one(
+                    {"_id": dj["_id"]},
+                    {"$set": update_fields}
+                )
+                migrated += 1
+                logger.info(f"Migrated images for DJ {dj.get('user_id', 'unknown')}")
+        
+        return migrated
+    except Exception as e:
+        logger.error(f"Migration error: {e}")
+        return 0
+
+@api_router.post("/admin/migrate-images")
+async def admin_migrate_images(request: Request):
+    """Admin: Migrate all existing base64 images to file storage."""
+    await require_admin(request)
+    migrated = await migrate_base64_to_files()
+    return {"message": f"Migration terminée: {migrated} profils DJ migrés", "migrated_count": migrated}
 
 # ===================
 # GEOGRAPHIC DATA
@@ -762,6 +909,20 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
     profile_dict["profil_complete_percent"] = calculate_profile_completion(profile_dict)
     profile_dict["badge_verifie"] = check_badge_verification(profile_dict)
     
+    # Convert base64 images to files (avoid 16MB BSON limit)
+    if profile_dict.get("photo_profil") and profile_dict["photo_profil"].startswith("data:"):
+        profile_dict["photo_profil"] = save_base64_image(profile_dict["photo_profil"], "profile")
+    
+    galerie = profile_dict.get("galerie_photos", [])
+    if galerie:
+        new_galerie = []
+        for img in galerie:
+            if img and img.startswith("data:"):
+                new_galerie.append(save_base64_image(img, "gallery"))
+            else:
+                new_galerie.append(img)
+        profile_dict["galerie_photos"] = new_galerie
+    
     await db.dj_profiles.insert_one(profile_dict)
     
     # Return without _id
@@ -803,6 +964,20 @@ async def update_dj_profile(update_data: DJProfileUpdate, request: Request):
     merged = {**current, **update_dict}
     update_dict["profil_complete_percent"] = calculate_profile_completion(merged)
     update_dict["badge_verifie"] = check_badge_verification(merged)
+    
+    # Convert base64 images to files (avoid 16MB BSON limit)
+    if update_dict.get("photo_profil") and update_dict["photo_profil"].startswith("data:"):
+        update_dict["photo_profil"] = save_base64_image(update_dict["photo_profil"], "profile")
+    
+    galerie = update_dict.get("galerie_photos")
+    if galerie:
+        new_galerie = []
+        for img in galerie:
+            if img and img.startswith("data:"):
+                new_galerie.append(save_base64_image(img, "gallery"))
+            else:
+                new_galerie.append(img)
+        update_dict["galerie_photos"] = new_galerie
     
     await db.dj_profiles.update_one(
         {"user_id": user_id},
@@ -1810,6 +1985,20 @@ async def admin_create_dj(request: Request):
         "added_by_admin": True,
     }
     
+    # Convert base64 images to files (avoid 16MB BSON limit)
+    if dj_data.get("photo_profil") and dj_data["photo_profil"].startswith("data:"):
+        dj_data["photo_profil"] = save_base64_image(dj_data["photo_profil"], "profile")
+    
+    galerie = dj_data.get("galerie_photos", [])
+    if galerie:
+        new_galerie = []
+        for img in galerie:
+            if img and img.startswith("data:"):
+                new_galerie.append(save_base64_image(img, "gallery"))
+            else:
+                new_galerie.append(img)
+        dj_data["galerie_photos"] = new_galerie
+    
     await db.dj_profiles.insert_one(dj_data)
     del dj_data["_id"]
     
@@ -1914,6 +2103,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_migrate_images():
+    """Auto-migrate base64 images to files on startup"""
+    try:
+        # Check if any documents still have base64 images
+        count = await db.dj_profiles.count_documents({
+            "$or": [
+                {"photo_profil": {"$regex": "^data:"}},
+                {"galerie_photos": {"$elemMatch": {"$regex": "^data:"}}}
+            ]
+        })
+        if count > 0:
+            logger.info(f"Found {count} DJ profiles with base64 images. Starting migration...")
+            migrated = await migrate_base64_to_files()
+            logger.info(f"Migration complete: {migrated} profiles migrated.")
+        else:
+            logger.info("No base64 images to migrate.")
+    except Exception as e:
+        logger.error(f"Startup migration error: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

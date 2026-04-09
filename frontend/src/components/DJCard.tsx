@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DJProfile } from '../types';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 interface DJCardProps {
   dj: DJProfile;
@@ -34,7 +35,7 @@ export function DJCard({ dj, onPress }: DJCardProps) {
     >
       <View style={styles.imageContainer}>
         {dj.photo_profil ? (
-          <Image source={{ uri: dj.photo_profil }} style={styles.image} />
+          <Image source={{ uri: resolveImageUrl(dj.photo_profil) || '' }} style={styles.image} />
         ) : (
           <View style={styles.placeholderImage}>
             <Ionicons name="person" size={40} color="#666" />
