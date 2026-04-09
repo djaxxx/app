@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Request
 from datetime import datetime, timezone
 import uuid
 
-from database import db, STRIPE_API_KEY, logger
+from database import db, STRIPE_API_KEY, ADMIN_EMAIL, logger
 from auth import require_dj
 from france_geo import DEPARTMENTS_FRANCE
 

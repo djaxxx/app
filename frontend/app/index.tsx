@@ -175,7 +175,7 @@ export default function HomeScreen() {
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Entrez le code postal de votre événement"
+            placeholder="Indiquez le code postal où aura lieu votre événement"
             keyboardType="numeric"
           />
         </View>
