@@ -49,6 +49,7 @@ export default function RootLayout() {
         <Stack.Screen name="zone-management" options={{ title: 'Zone d\'intervention', headerShown: false }} />
         <Stack.Screen name="zone/success" options={{ title: 'Zone ajoutée', headerShown: false }} />
         <Stack.Screen name="zone/cancel" options={{ title: 'Zone annulée', headerShown: false }} />
+        <Stack.Screen name="admin-contacts" options={{ title: 'Base Contacts CRM', headerShown: false }} />
       </Stack>
     </>
   );

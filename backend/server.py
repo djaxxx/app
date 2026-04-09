@@ -20,6 +20,7 @@ from routes.zones import router as zones_router
 from routes.boost import router as boost_router
 from routes.stripe import router as stripe_router
 from routes.admin import router as admin_router
+from routes.admin_contacts import router as admin_contacts_router
 from routes.misc import router as misc_router
 
 # Create the main app
@@ -42,6 +43,7 @@ api_router.include_router(zones_router)
 api_router.include_router(boost_router)
 api_router.include_router(stripe_router)
 api_router.include_router(admin_router)
+api_router.include_router(admin_contacts_router)
 
 # Include the combined router
 app.include_router(api_router)

@@ -359,6 +359,31 @@ class ApiService {
     });
   }
 
+  // Admin CRM - Contacts
+  async adminGetContacts(params?: { type?: string; status?: string; department?: string; search?: string; page?: number; limit?: number }) {
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.status) query.set('status', params.status);
+    if (params?.department) query.set('department', params.department);
+    if (params?.search) query.set('search', params.search);
+    if (params?.page) query.set('page', params.page.toString());
+    if (params?.limit) query.set('limit', params.limit.toString());
+    return this.request<{ contacts: any[]; total: number; page: number; pages: number }>(`/api/admin/contacts?${query.toString()}`);
+  }
+
+  async adminGetContactsStats() {
+    return this.request<any>('/api/admin/contacts/stats');
+  }
+
+  getExportCsvUrl(params?: { type?: string; status?: string; department?: string; search?: string }) {
+    const query = new URLSearchParams();
+    if (params?.type) query.set('type', params.type);
+    if (params?.status) query.set('status', params.status);
+    if (params?.department) query.set('department', params.department);
+    if (params?.search) query.set('search', params.search);
+    return `${this.baseUrl}/api/admin/contacts/export-csv?${query.toString()}`;
+  }
+
   // Image Upload (saves to disk, avoids MongoDB 16MB limit)
   async uploadImage(base64Image: string, type: 'profile' | 'gallery' = 'gallery'): Promise<string> {
     // Skip upload if already a URL

@@ -191,6 +191,19 @@ export default function AdminScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* CRM Contacts Button */}
+        <TouchableOpacity
+          style={styles.crmButton}
+          onPress={() => router.push('/admin-contacts')}
+        >
+          <Ionicons name="people" size={20} color="#fff" />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.crmButtonTitle}>Base Contacts CRM</Text>
+            <Text style={styles.crmButtonSubtitle}>Gérer, filtrer et exporter tous les contacts (DJs + Clients)</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#8B5CF6" />
+        </TouchableOpacity>
+
         {/* Create DJ Form */}
         {showCreateForm && (
           <View style={styles.formContainer}>
@@ -496,6 +509,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#8B5CF6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  crmButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: '#12123A',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#8B5CF6',
+  },
+  crmButtonTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  crmButtonSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
   },
   formContainer: {
     marginHorizontal: 20,
