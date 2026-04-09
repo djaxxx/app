@@ -46,6 +46,7 @@ export default function DJRegisterScreen() {
     prenom: '',
     nom_de_scene: '',
     telephone: '',
+    code_postal: '',
     ville: '',
     zone_intervention: '',
     siret: '',
@@ -78,14 +79,21 @@ export default function DJRegisterScreen() {
     loadEventTypes();
   }, []);
 
-  // Auto-lookup city for geo info
+  // Auto-lookup geo info when postal code changes (primary)
   useEffect(() => {
+    const cp = formData.code_postal.trim();
+    if (cp.length !== 5 || !/^\d{5}$/.test(cp)) {
+      return;
+    }
     const lookupTimeout = setTimeout(async () => {
-      const city = formData.ville.trim();
-      if (city.length >= 3) {
-        setGeoLoading(true);
-        try {
-          const result = await api.lookupCity(city);
+      setGeoLoading(true);
+      try {
+        const response = await fetch(`https://geo.api.gouv.fr/communes?codePostal=${cp}&fields=nom,codeDepartement,codeRegion&limit=5`);
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const commune = data[0];
+          setFormData(prev => ({ ...prev, ville: commune.nom || prev.ville }));
+          const result = await api.lookupCity(commune.nom);
           if ('department_name' in result) {
             setGeoInfo({
               department_name: result.department_name,
@@ -96,16 +104,43 @@ export default function DJRegisterScreen() {
           } else {
             setGeoInfo(null);
           }
-        } catch {
+        } else {
           setGeoInfo(null);
-        } finally {
-          setGeoLoading(false);
         }
-      } else {
+      } catch {
         setGeoInfo(null);
+      } finally {
+        setGeoLoading(false);
       }
-    }, 500); // debounce 500ms
+    }, 400);
+    return () => clearTimeout(lookupTimeout);
+  }, [formData.code_postal]);
 
+  // Fallback: lookup by city name if no postal code
+  useEffect(() => {
+    if (formData.code_postal.trim().length === 5) return; // Postal code takes priority
+    const city = formData.ville.trim();
+    if (city.length < 3) { setGeoInfo(null); return; }
+    const lookupTimeout = setTimeout(async () => {
+      setGeoLoading(true);
+      try {
+        const result = await api.lookupCity(city);
+        if ('department_name' in result) {
+          setGeoInfo({
+            department_name: result.department_name,
+            region_name: result.region_name,
+            department_code: result.department_code,
+            region_code: result.region_code,
+          });
+        } else {
+          setGeoInfo(null);
+        }
+      } catch {
+        setGeoInfo(null);
+      } finally {
+        setGeoLoading(false);
+      }
+    }, 500);
     return () => clearTimeout(lookupTimeout);
   }, [formData.ville]);
 
@@ -189,11 +224,21 @@ export default function DJRegisterScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.nom || !formData.prenom || !formData.nom_de_scene || !formData.telephone || !formData.ville || !formData.siret) {
+    if (!formData.nom || !formData.prenom || !formData.nom_de_scene || !formData.telephone || !formData.code_postal || !formData.siret) {
       if (Platform.OS === 'web') {
         window.alert('Veuillez remplir tous les champs obligatoires');
       } else {
         Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+      }
+      return;
+    }
+
+    if (formData.code_postal.length !== 5 || !/^\d{5}$/.test(formData.code_postal)) {
+      const msg = 'Veuillez entrer un code postal valide à 5 chiffres';
+      if (Platform.OS === 'web') {
+        window.alert(msg);
+      } else {
+        Alert.alert('Code postal invalide', msg);
       }
       return;
     }
@@ -482,18 +527,36 @@ export default function DJRegisterScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Ville *</Text>
+                <Text style={styles.label}>Code postal *</Text>
                 <TextInput
                   style={styles.input}
-                  value={formData.ville}
-                  onChangeText={(text) => setFormData({ ...formData, ville: text })}
-                  placeholder="Votre ville (ex: Paris, Lyon, Marseille...)"
+                  value={formData.code_postal}
+                  onChangeText={(text) => {
+                    const cleaned = text.replace(/\D/g, '').slice(0, 5);
+                    setFormData({ ...formData, code_postal: cleaned });
+                  }}
+                  placeholder="Ex: 75001, 69001, 13001..."
                   placeholderTextColor="#666"
+                  keyboardType="number-pad"
+                  maxLength={5}
                 />
                 {geoLoading && (
                   <View style={styles.geoLoading}>
                     <ActivityIndicator size="small" color="#8B5CF6" />
-                    <Text style={styles.geoLoadingText}>Recherche...</Text>
+                    <Text style={styles.geoLoadingText}>Recherche en cours...</Text>
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Ville</Text>
+                <TextInput
+                  style={[styles.input, formData.code_postal.length === 5 && geoInfo ? styles.inputAutoFilled : null]}
+                  value={formData.ville}
+                  onChangeText={(text) => setFormData({ ...formData, ville: text })}
+                  placeholder="Remplie automatiquement par le code postal"
+                  placeholderTextColor="#666"
+                />                    <Text style={styles.geoLoadingText}>Recherche...</Text>
                   </View>
                 )}
                 {geoInfo && (
@@ -595,12 +658,28 @@ export default function DJRegisterScreen() {
               <Button
                 title="Suivant"
                 onPress={() => {
-                  if (!formData.nom || !formData.prenom || !formData.nom_de_scene || !formData.telephone || !formData.ville || !formData.siret) {
-                    Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires');
+                  if (!formData.nom || !formData.prenom || !formData.nom_de_scene || !formData.telephone || !formData.code_postal || !formData.siret) {
+                    if (Platform.OS === 'web') {
+                      window.alert('Veuillez remplir tous les champs obligatoires (dont le code postal)');
+                    } else {
+                      Alert.alert('Erreur', 'Veuillez remplir tous les champs obligatoires (dont le code postal)');
+                    }
+                    return;
+                  }
+                  if (formData.code_postal.length !== 5 || !/^\d{5}$/.test(formData.code_postal)) {
+                    if (Platform.OS === 'web') {
+                      window.alert('Veuillez entrer un code postal valide à 5 chiffres');
+                    } else {
+                      Alert.alert('Erreur', 'Veuillez entrer un code postal valide à 5 chiffres');
+                    }
                     return;
                   }
                   if (!siretResult?.valid) {
-                    Alert.alert('Erreur', 'Veuillez vérifier votre SIRET');
+                    if (Platform.OS === 'web') {
+                      window.alert('Veuillez vérifier votre SIRET');
+                    } else {
+                      Alert.alert('Erreur', 'Veuillez vérifier votre SIRET');
+                    }
                     return;
                   }
                   setStep(2);
@@ -899,6 +978,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#1E1E4A',
+  },
+  inputAutoFilled: {
+    borderColor: 'rgba(16,185,129,0.4)',
+    backgroundColor: 'rgba(16,185,129,0.05)',
   },
   textArea: {
     height: 100,
