@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from database import db, ADMIN_EMAIL
 from auth import require_auth, require_dj
@@ -14,24 +14,46 @@ from france_geo import (
 
 router = APIRouter()
 
+TRIAL_DAYS = 15
+
 
 def is_admin_user(user_data: dict) -> bool:
     """Check if the user is the admin"""
     return bool(ADMIN_EMAIL) and user_data.get("email", "").lower() == ADMIN_EMAIL.lower()
 
 
+async def check_trial_expiry(profile: dict) -> dict:
+    """Check if a trial has expired and update DB accordingly. Returns updated fields."""
+    if profile.get("subscription_status") != "trial":
+        return profile
+
+    trial_end = profile.get("trial_end")
+    if trial_end and trial_end < datetime.now(timezone.utc):
+        # Trial expired
+        await db.dj_profiles.update_one(
+            {"user_id": profile["user_id"]},
+            {"$set": {
+                "subscription_status": "expired",
+                "is_active": False,
+            }}
+        )
+        profile["subscription_status"] = "expired"
+        profile["is_active"] = False
+    return profile
+
+
 @router.post("/dj/register")
 async def register_dj(profile_data: DJProfileCreate, request: Request):
-    """Register a new DJ (requires authentication and valid SIRET)"""
+    """Register a new DJ (requires authentication and valid SIRET) - 15 day free trial"""
     user = await require_auth(request)
     existing = await db.dj_profiles.find_one({"user_id": user["user_id"]})
     if existing:
-        raise HTTPException(status_code=400, detail="Vous avez d\u00e9j\u00e0 un profil DJ")
+        raise HTTPException(status_code=400, detail="Vous avez deja un profil DJ")
     if not profile_data.siret or len(profile_data.siret.replace(" ", "")) != 14:
-        raise HTTPException(status_code=400, detail="Le num\u00e9ro SIRET est obligatoire (14 chiffres)")
+        raise HTTPException(status_code=400, detail="Le numero SIRET est obligatoire (14 chiffres)")
     siret_result = await verify_siret(SiretVerificationRequest(siret=profile_data.siret))
     if not siret_result.valid:
-        raise HTTPException(status_code=400, detail=f"SIRET invalide - Inscription refus\u00e9e: {siret_result.message}")
+        raise HTTPException(status_code=400, detail=f"SIRET invalide - Inscription refusee: {siret_result.message}")
     tarif_valid, tarif_error = validate_minimum_tarif(profile_data.tarif_indicatif or "")
     if not tarif_valid:
         raise HTTPException(status_code=400, detail=tarif_error)
@@ -50,8 +72,15 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
     profile_dict["company_name"] = siret_result.company_name or ""
     profile_dict["created_at"] = datetime.now(timezone.utc)
     profile_dict["updated_at"] = datetime.now(timezone.utc)
-    profile_dict["subscription_status"] = "inactive"
-    profile_dict["is_active"] = False
+
+    # --- FREE TRIAL: 15 days ---
+    now = datetime.now(timezone.utc)
+    profile_dict["subscription_status"] = "trial"
+    profile_dict["subscription_plan"] = "trial"
+    profile_dict["is_active"] = True
+    profile_dict["trial_start"] = now
+    profile_dict["trial_end"] = now + timedelta(days=TRIAL_DAYS)
+
     profile_dict["note_moyenne"] = 0.0
     profile_dict["nombre_avis"] = 0
     profile_dict["nombre_vues"] = 0
@@ -73,7 +102,13 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
     await db.dj_profiles.insert_one(profile_dict)
     if "_id" in profile_dict:
         del profile_dict["_id"]
-    return {"message": "Profil DJ cr\u00e9\u00e9 avec succ\u00e8s", "profile": profile_dict}
+    return {
+        "message": "Profil DJ cree avec succes ! Essai gratuit de 15 jours active.",
+        "profile": profile_dict,
+        "trial": True,
+        "trial_days": TRIAL_DAYS,
+        "trial_end": profile_dict["trial_end"].isoformat(),
+    }
 
 
 @router.put("/dj/profile")
@@ -105,7 +140,7 @@ async def update_dj_profile(update_data: DJProfileUpdate, request: Request):
     convert_images_to_files(update_dict)
     await db.dj_profiles.update_one({"user_id": user_id}, {"$set": update_dict})
     updated = await db.dj_profiles.find_one({"user_id": user_id}, {"_id": 0})
-    return {"message": "Profil mis \u00e0 jour", "profile": updated}
+    return {"message": "Profil mis a jour", "profile": updated}
 
 
 @router.get("/dj/profile")
@@ -117,17 +152,14 @@ async def get_my_dj_profile(request: Request):
 
 @router.get("/dj/dashboard")
 async def get_dj_dashboard(request: Request):
-    """Get DJ dashboard statistics - Admin never locked"""
+    """Get DJ dashboard statistics - handles trial, active, admin"""
     user_data = await require_dj(request)
     profile = user_data["dj_profile"]
     user_id = user_data["user_id"]
-    subscription_status = profile.get("subscription_status", "inactive")
     admin = is_admin_user(user_data)
 
     # Admin override: always active, never locked
     if admin:
-        subscription_status = "active"
-        # Auto-fix admin subscription and boost in DB if needed
         update_fields = {}
         if profile.get("subscription_status") != "active":
             update_fields["subscription_status"] = "active"
@@ -137,27 +169,70 @@ async def get_dj_dashboard(request: Request):
             update_fields["boost_active"] = "Permanent"
             update_fields["boost_plan"] = "admin_permanent"
         if update_fields:
-            await db.dj_profiles.update_one(
-                {"user_id": user_id},
-                {"$set": update_fields}
-            )
+            await db.dj_profiles.update_one({"user_id": user_id}, {"$set": update_fields})
+
+        requests_count = await db.contact_requests.count_documents({"dj_user_id": user_id})
+        unread_requests = await db.contact_requests.count_documents({"dj_user_id": user_id, "read": False})
+        recent_reviews = await db.reviews.find({"dj_user_id": user_id, "status": "approved"}).sort("created_at", -1).limit(5).to_list(5)
+        for review in recent_reviews:
+            if "_id" in review:
+                del review["_id"]
+        pending_reviews_count = await db.reviews.count_documents({"dj_user_id": user_id, "status": "pending"})
+        return {
+            "subscription_status": "active",
+            "subscription_plan": "admin_permanent",
+            "subscription_end_date": None,
+            "profil_complete_percent": profile.get("profil_complete_percent", 0),
+            "badge_verifie": profile.get("badge_verifie", False),
+            "is_locked": False,
+            "is_admin": True,
+            "nombre_vues": profile.get("nombre_vues", 0),
+            "nombre_demandes": requests_count,
+            "demandes_non_lues": unread_requests,
+            "note_moyenne": profile.get("note_moyenne", 0),
+            "nombre_avis": profile.get("nombre_avis", 0),
+            "recent_reviews": recent_reviews,
+            "pending_reviews_count": pending_reviews_count,
+        }
+
+    # Check trial expiry
+    profile = await check_trial_expiry(profile)
+    subscription_status = profile.get("subscription_status", "inactive")
+
+    # Trial info
+    trial_info = {}
+    if subscription_status == "trial":
+        trial_end = profile.get("trial_end")
+        if trial_end:
+            days_left = max(0, (trial_end - datetime.now(timezone.utc)).days)
+            trial_info = {
+                "is_trial": True,
+                "trial_end": trial_end.isoformat() if hasattr(trial_end, 'isoformat') else str(trial_end),
+                "trial_days_remaining": days_left,
+            }
+
+    # Determine if locked
+    is_visible = subscription_status in ("active", "trial")
 
     base_response = {
         "subscription_status": subscription_status,
-        "subscription_plan": profile.get("subscription_plan") if not admin else "admin_permanent",
+        "subscription_plan": profile.get("subscription_plan"),
         "subscription_end_date": profile.get("subscription_end_date"),
         "profil_complete_percent": profile.get("profil_complete_percent", 0),
         "badge_verifie": profile.get("badge_verifie", False),
-        "is_locked": False if admin else (subscription_status != "active"),
-        "is_admin": admin,
+        "is_locked": not is_visible,
+        "is_admin": False,
+        **trial_info,
     }
-    if not admin and subscription_status != "active":
+
+    if not is_visible:
         base_response.update({
             "nombre_vues": 0, "nombre_demandes": 0, "demandes_non_lues": 0,
             "note_moyenne": 0, "nombre_avis": 0, "recent_reviews": [],
-            "lock_message": "Votre profil est masque. Activez votre abonnement pour etre visible sur la plateforme.",
+            "lock_message": "Votre essai gratuit est termine. Choisissez une formule pour rester visible sur la plateforme.",
         })
         return base_response
+
     requests_count = await db.contact_requests.count_documents({"dj_user_id": user_id})
     unread_requests = await db.contact_requests.count_documents({"dj_user_id": user_id, "read": False})
     recent_reviews = await db.reviews.find({"dj_user_id": user_id, "status": "approved"}).sort("created_at", -1).limit(5).to_list(5)
@@ -184,8 +259,8 @@ async def list_djs(
     note_min: Optional[float] = None, verifie_uniquement: bool = False,
     page: int = 1, limit: int = 20
 ):
-    """List active DJs with filters"""
-    query = {"is_active": True, "subscription_status": "active"}
+    """List active DJs with filters - includes trial DJs"""
+    query = {"is_active": True, "subscription_status": {"$in": ["active", "trial"]}}
     search_term = code_postal or ville
     if search_term and search_term.strip():
         search_term = search_term.strip()
@@ -230,6 +305,8 @@ async def list_djs(
     djs = await db.dj_profiles.find(query, {"_id": 0}).sort([
         ("boost_active", -1), ("note_moyenne", -1),
     ]).skip(skip).limit(limit).to_list(limit)
+
+    expired_ids = []
     for dj in djs:
         dj.pop("telephone", None)
         dj.pop("email", None)
@@ -238,20 +315,50 @@ async def list_djs(
         if "boost_active" not in dj:
             dj["boost_active"] = False
         boost_end = dj.get("boost_end")
-        if dj.get("boost_active") and boost_end and boost_end < now:
-            dj["boost_active"] = False
-            await db.dj_profiles.update_one({"user_id": dj["user_id"]}, {"$set": {"boost_active": False}})
-    return {"total": total, "page": page, "limit": limit, "pages": (total + limit - 1) // limit, "djs": djs}
+        if dj.get("boost_active") and boost_end:
+            be = boost_end if boost_end.tzinfo else boost_end.replace(tzinfo=timezone.utc)
+            if be < now:
+                dj["boost_active"] = False
+                await db.dj_profiles.update_one({"user_id": dj["user_id"]}, {"$set": {"boost_active": False}})
+        # Check trial expiry inline
+        if dj.get("subscription_status") == "trial":
+            trial_end = dj.get("trial_end")
+            te = trial_end.replace(tzinfo=timezone.utc) if trial_end and not trial_end.tzinfo else trial_end
+            if te and te < now:
+                expired_ids.append(dj["user_id"])
+
+    # Remove expired trial DJs from results
+    if expired_ids:
+        await db.dj_profiles.update_many(
+            {"user_id": {"$in": expired_ids}},
+            {"$set": {"subscription_status": "expired", "is_active": False}}
+        )
+        djs = [dj for dj in djs if dj.get("user_id") not in expired_ids]
+        total -= len(expired_ids)
+
+    return {"total": total, "page": page, "limit": limit, "pages": max(1, (total + limit - 1) // limit), "djs": djs}
 
 
 @router.get("/djs/{user_id}")
 async def get_dj_profile(user_id: str):
-    """Get a specific DJ profile"""
+    """Get a specific DJ profile - visible for active and trial DJs"""
     dj = await db.dj_profiles.find_one(
-        {"user_id": user_id, "is_active": True, "subscription_status": "active"}, {"_id": 0}
+        {"user_id": user_id, "is_active": True, "subscription_status": {"$in": ["active", "trial"]}},
+        {"_id": 0}
     )
     if not dj:
-        raise HTTPException(status_code=404, detail="DJ non trouv\u00e9 ou profil non visible (abonnement inactif)")
+        raise HTTPException(status_code=404, detail="DJ non trouve ou profil non visible")
+
+    # Check trial expiry
+    if dj.get("subscription_status") == "trial":
+        trial_end = dj.get("trial_end")
+        if trial_end and trial_end < datetime.now(timezone.utc):
+            await db.dj_profiles.update_one(
+                {"user_id": user_id},
+                {"$set": {"subscription_status": "expired", "is_active": False}}
+            )
+            raise HTTPException(status_code=404, detail="DJ non trouve ou profil non visible")
+
     await db.dj_profiles.update_one({"user_id": user_id}, {"$inc": {"nombre_vues": 1}})
     reviews = await db.reviews.find({"dj_user_id": user_id, "verified": True}).sort("created_at", -1).limit(10).to_list(10)
     for review in reviews:
@@ -259,7 +366,6 @@ async def get_dj_profile(user_id: str):
             del review["_id"]
     dj_public = {**dj}
     dj_public["reviews"] = reviews
-    # Remove internal fields not visible to public
     dj_public.pop("assurance_rc_numero", None)
     dj_public.pop("assurance_rc_organisme", None)
     return dj_public

@@ -14,7 +14,7 @@ router = APIRouter()
 async def create_contact_request(contact: ContactRequest):
     """Create a contact request for a DJ"""
     dj = await db.dj_profiles.find_one({
-        "user_id": contact.dj_user_id, "is_active": True, "subscription_status": "active"
+        "user_id": contact.dj_user_id, "is_active": True, "subscription_status": {"$in": ["active", "trial"]}
     })
     if not dj:
         raise HTTPException(status_code=404, detail="DJ non trouv\u00e9 ou profil non visible")

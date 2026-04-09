@@ -276,28 +276,7 @@ export default function DJRegisterScreen() {
       await api.registerDJ(profileData);
       await checkAuth();
       
-      // Automatically redirect to Stripe payment
-      const originUrl = Platform.OS === 'web' 
-        ? window.location.origin 
-        : (process.env.EXPO_PUBLIC_BACKEND_URL || '');
-      
-      if (originUrl) {
-        try {
-          const checkoutResult = await api.createSubscriptionCheckout(originUrl, 'monthly');
-          if (checkoutResult.checkout_url) {
-            if (Platform.OS === 'web') {
-              window.location.href = checkoutResult.checkout_url;
-            } else {
-              await Linking.openURL(checkoutResult.checkout_url);
-            }
-            return; // Don't reset loading - page will navigate away
-          }
-        } catch (paymentError) {
-          // If Stripe fails, still go to dashboard (user can pay later)
-          console.error('Stripe checkout error:', paymentError);
-        }
-      }
-      
+      // Free trial: redirect directly to dashboard (no Stripe payment needed)
       router.replace('/(tabs)/dashboard');
     } catch (error: any) {
       if (Platform.OS === 'web') {

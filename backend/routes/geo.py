@@ -42,7 +42,7 @@ async def get_djs_for_map(
     verifie_uniquement: bool = False
 ):
     """Get DJ locations for map display (only active and subscribed DJs)"""
-    query = {"is_active": True, "subscription_status": "active"}
+    query = {"is_active": True, "subscription_status": {"$in": ["active", "trial"]}}
     if region_code:
         query["region_code"] = region_code
     if department_code:

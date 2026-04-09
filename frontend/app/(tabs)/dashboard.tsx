@@ -123,15 +123,15 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* Lock Screen for Unpaid DJs */}
+        {/* Lock Screen for Expired Trial DJs */}
         {dashboard?.is_locked ? (
           <View style={styles.lockedContainer}>
             <View style={styles.lockIconContainer}>
-              <Ionicons name="lock-closed" size={48} color="#F59E0B" />
+              <Ionicons name="time-outline" size={48} color="#F59E0B" />
             </View>
-            <Text style={styles.lockedTitle}>Profil masqué</Text>
+            <Text style={styles.lockedTitle}>Essai gratuit termine</Text>
             <Text style={styles.lockedMessage}>
-              {dashboard.lock_message || "Votre profil n'est pas visible sur la plateforme. Activez votre abonnement pour apparaître dans les recherches et sur la carte."}
+              {dashboard.lock_message || "Votre essai gratuit de 15 jours est termine. Choisissez une formule pour rester visible sur la plateforme."}
             </Text>
 
             <View style={styles.lockedBenefits}>
@@ -216,11 +216,32 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <>
-            {/* Active Subscription Badge */}
-            <View style={styles.activeSubBanner}>
-              <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-              <Text style={styles.activeSubText}>Abonnement actif — Profil visible</Text>
-            </View>
+            {/* Trial Banner */}
+            {dashboard?.is_trial ? (
+              <View style={styles.trialBanner}>
+                <View style={styles.trialBannerIcon}>
+                  <Ionicons name="gift-outline" size={24} color="#8B5CF6" />
+                </View>
+                <View style={styles.trialBannerContent}>
+                  <Text style={styles.trialBannerTitle}>Essai gratuit en cours</Text>
+                  <Text style={styles.trialBannerDays}>
+                    {dashboard.trial_days_remaining > 1
+                      ? `${dashboard.trial_days_remaining} jours restants`
+                      : dashboard.trial_days_remaining === 1
+                      ? '1 jour restant'
+                      : "Dernier jour d'essai !"}
+                  </Text>
+                  <Text style={styles.trialBannerSubtext}>
+                    Votre profil est visible gratuitement pendant 15 jours
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.activeSubBanner}>
+                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                <Text style={styles.activeSubText}>Abonnement actif — Profil visible</Text>
+              </View>
+            )}
 
             {/* Stats Cards */}
             <View style={styles.statsGrid}>
@@ -708,5 +729,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  trialBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    marginBottom: 8,
+  },
+  trialBannerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  trialBannerContent: {
+    flex: 1,
+  },
+  trialBannerTitle: {
+    color: '#8B5CF6',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  trialBannerDays: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 2,
+  },
+  trialBannerSubtext: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 2,
   },
 });

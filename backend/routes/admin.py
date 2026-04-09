@@ -86,7 +86,11 @@ async def admin_toggle_subscription(user_id: str, request: Request):
     if not dj:
         raise HTTPException(status_code=404, detail="DJ non trouv\u00e9")
     current_status = dj.get("subscription_status", "inactive")
-    new_status = "inactive" if current_status == "active" else "active"
+    # Toggle: active/trial → inactive, inactive/expired → active
+    if current_status in ("active", "trial"):
+        new_status = "inactive"
+    else:
+        new_status = "active"
     update_data = {"subscription_status": new_status, "is_active": new_status == "active", "updated_at": datetime.now(timezone.utc)}
     if new_status == "active":
         update_data["subscription_plan"] = "admin_free"
