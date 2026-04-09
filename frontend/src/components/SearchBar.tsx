@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, KeyboardTypeOptions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface SearchBarProps {
@@ -7,9 +7,10 @@ interface SearchBarProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   onFilter?: () => void;
+  keyboardType?: KeyboardTypeOptions;
 }
 
-export function SearchBar({ value, onChangeText, placeholder = 'Rechercher...', onFilter }: SearchBarProps) {
+export function SearchBar({ value, onChangeText, placeholder = 'Rechercher...', onFilter, keyboardType }: SearchBarProps) {
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -21,6 +22,8 @@ export function SearchBar({ value, onChangeText, placeholder = 'Rechercher...', 
           placeholder={placeholder}
           placeholderTextColor="#666"
           returnKeyType="search"
+          keyboardType={keyboardType}
+          maxLength={keyboardType === 'numeric' ? 5 : undefined}
         />
         {value.length > 0 && (
           <TouchableOpacity onPress={() => onChangeText('')}>

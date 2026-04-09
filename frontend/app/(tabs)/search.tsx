@@ -33,7 +33,7 @@ export default function SearchScreen() {
     setLoading(true);
     try {
       const result = await api.searchDJs({
-        ville: searchQuery,
+        code_postal: searchQuery,
         verifie_uniquement: filters.verifie_uniquement,
         note_min: filters.note_min > 0 ? filters.note_min : undefined,
       });
@@ -59,7 +59,8 @@ export default function SearchScreen() {
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Ville, département..."
+          placeholder="Entrez votre code postal..."
+          keyboardType="numeric"
           onFilter={() => setShowFilters(!showFilters)}
         />
         

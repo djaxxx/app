@@ -83,6 +83,7 @@ export interface EventType {
 
 export interface DJSearchFilters {
   ville?: string;
+  code_postal?: string;
   type_evenement?: string;
   budget_max?: number;
   note_min?: number;

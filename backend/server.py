@@ -17,7 +17,8 @@ import re
 from france_geo import (
     REGIONS_FRANCE, DEPARTMENTS_FRANCE, MAJOR_CITIES_FRANCE,
     get_department_for_city, get_all_regions, get_all_departments,
-    get_departments_by_region, find_region_by_name, find_department_by_name
+    get_departments_by_region, find_region_by_name, find_department_by_name,
+    get_info_by_postal_code
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -867,6 +868,7 @@ async def get_dj_dashboard(request: Request):
 @api_router.get("/djs")
 async def list_djs(
     ville: Optional[str] = None,
+    code_postal: Optional[str] = None,
     type_evenement: Optional[str] = None,
     budget_max: Optional[int] = None,
     note_min: Optional[float] = None,
@@ -877,42 +879,50 @@ async def list_djs(
     """List active DJs with filters"""
     query = {"is_active": True, "subscription_status": "active"}
     
-    if ville and len(ville.strip()) >= 2:
-        # Smart search: check city name, zone_intervention, region and department
-        search_conditions = [
-            {"ville": {"$regex": ville, "$options": "i"}},
-            {"zone_intervention": {"$regex": ville, "$options": "i"}},
-            {"region_name": {"$regex": ville, "$options": "i"}},
-            {"department_name": {"$regex": ville, "$options": "i"}},
-        ]
+    # Search by postal code (primary search method)
+    search_term = code_postal or ville
+    if search_term and search_term.strip():
+        search_term = search_term.strip()
+        search_conditions = []
         
-        # Check if search term is a known region name (only for terms >= 3 chars)
-        if len(ville.strip()) >= 3:
-            region_match = find_region_by_name(ville)
-            if region_match:
-                search_conditions.append({"region_code": region_match["code"]})
-                search_conditions.append({"region_name": region_match["name"]})
-            
-            # Check if search term is a known department name
-            dept_match = find_department_by_name(ville)
-            if dept_match:
-                search_conditions.append({"department_code": dept_match["code"]})
-                search_conditions.append({"department_name": dept_match["name"]})
-            
-            # Also try to resolve the search term as a city via geo API
-            geo_info = get_department_for_city(ville)
-            if geo_info:
-                # If the search term resolves to a city, also include DJs in the same department/region
-                if geo_info.get("region_name"):
-                    search_conditions.append({"region_name": geo_info["region_name"]})
-                if geo_info.get("department_name"):
-                    search_conditions.append({"department_name": geo_info["department_name"]})
-                if geo_info.get("region_code"):
-                    search_conditions.append({"region_code": geo_info["region_code"]})
-                if geo_info.get("department_code"):
-                    search_conditions.append({"department_code": geo_info["department_code"]})
+        # Check if it's a postal code (5 digits)
+        if search_term.isdigit() and len(search_term) == 5:
+            postal_info = get_info_by_postal_code(search_term)
+            if postal_info:
+                # Match DJs in the same department
+                search_conditions.append({"department_code": postal_info["department_code"]})
+                search_conditions.append({"department_name": postal_info["department_name"]})
+                # Also check zone_intervention for region/department
+                search_conditions.append({"zone_intervention": {"$regex": postal_info["department_name"], "$options": "i"}})
+                if postal_info.get("region_name"):
+                    search_conditions.append({"zone_intervention": {"$regex": postal_info["region_name"], "$options": "i"}})
+                # Match cities resolved from this postal code
+                for city_name in postal_info.get("all_cities", []):
+                    search_conditions.append({"ville": {"$regex": city_name, "$options": "i"}})
+        elif len(search_term) >= 2:
+            # Fallback: text search on ville, zone_intervention, region, department
+            search_conditions = [
+                {"ville": {"$regex": search_term, "$options": "i"}},
+                {"zone_intervention": {"$regex": search_term, "$options": "i"}},
+                {"region_name": {"$regex": search_term, "$options": "i"}},
+                {"department_name": {"$regex": search_term, "$options": "i"}},
+            ]
+            if len(search_term) >= 3:
+                region_match = find_region_by_name(search_term)
+                if region_match:
+                    search_conditions.append({"region_code": region_match["code"]})
+                dept_match = find_department_by_name(search_term)
+                if dept_match:
+                    search_conditions.append({"department_code": dept_match["code"]})
+                geo_info = get_department_for_city(search_term)
+                if geo_info:
+                    if geo_info.get("department_code"):
+                        search_conditions.append({"department_code": geo_info["department_code"]})
+                    if geo_info.get("region_code"):
+                        search_conditions.append({"region_code": geo_info["region_code"]})
         
-        query["$or"] = search_conditions
+        if search_conditions:
+            query["$or"] = search_conditions
     
     if type_evenement:
         query["types_evenements"] = {"$in": [type_evenement]}

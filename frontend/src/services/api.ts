@@ -118,6 +118,7 @@ class ApiService {
   // DJ Profiles (Public)
   async searchDJs(filters: DJSearchFilters = {}, page = 1, limit = 20) {
     const params = new URLSearchParams();
+    if (filters.code_postal) params.append('code_postal', filters.code_postal);
     if (filters.ville) params.append('ville', filters.ville);
     if (filters.type_evenement) params.append('type_evenement', filters.type_evenement);
     if (filters.budget_max) params.append('budget_max', filters.budget_max.toString());

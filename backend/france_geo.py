@@ -273,6 +273,45 @@ def get_department_for_city(city_name: str) -> dict | None:
     
     return None
 
+def get_info_by_postal_code(postal_code: str) -> dict | None:
+    """Resolve a French postal code to department/region info via government API"""
+    postal_code = postal_code.strip()
+    if not postal_code or not postal_code.isdigit() or len(postal_code) != 5:
+        return None
+    
+    try:
+        response = httpx.get(
+            "https://geo.api.gouv.fr/communes",
+            params={"codePostal": postal_code, "fields": "nom,codeDepartement,codeRegion,centre,codesPostaux,population", "limit": 5},
+            timeout=5.0
+        )
+        if response.status_code == 200:
+            results = response.json()
+            if results:
+                # Take the most populated commune for this postal code
+                commune = max(results, key=lambda c: c.get("population", 0))
+                dept_code = commune.get("codeDepartement", "")
+                dept_info = DEPARTMENTS_FRANCE.get(dept_code)
+                if dept_info:
+                    region_code = dept_info["region"]
+                    region_info = REGIONS_FRANCE.get(region_code)
+                    centre = commune.get("centre", {}).get("coordinates", [0, 0])
+                    return {
+                        "city": commune.get("nom", ""),
+                        "postal_code": postal_code,
+                        "department_code": dept_code,
+                        "department_name": dept_info["name"],
+                        "region_code": region_code,
+                        "region_name": region_info["name"] if region_info else None,
+                        "lat": centre[1] if len(centre) > 1 else dept_info["lat"],
+                        "lon": centre[0] if len(centre) > 0 else dept_info["lon"],
+                        "all_cities": [c.get("nom", "") for c in results],
+                    }
+    except Exception:
+        pass
+    
+    return None
+
 def get_all_regions() -> list:
     """Get all French regions"""
     return [{"code": code, "name": info["name"]} for code, info in REGIONS_FRANCE.items()]

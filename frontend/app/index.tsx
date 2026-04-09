@@ -42,7 +42,7 @@ export default function HomeScreen() {
       const effectiveEventType = eventType !== undefined ? eventType : selectedEventType;
       const [djsResult, typesResult] = await Promise.all([
         api.searchDJs({
-          ville: effectiveQuery || undefined,
+          code_postal: effectiveQuery || undefined,
           type_evenement: effectiveEventType || undefined,
         }),
         api.getEventTypes(),
@@ -175,7 +175,8 @@ export default function HomeScreen() {
           <SearchBar
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Rechercher par ville..."
+            placeholder="Entrez votre code postal..."
+            keyboardType="numeric"
           />
         </View>
 
