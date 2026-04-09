@@ -556,9 +556,7 @@ export default function DJRegisterScreen() {
                   onChangeText={(text) => setFormData({ ...formData, ville: text })}
                   placeholder="Remplie automatiquement par le code postal"
                   placeholderTextColor="#666"
-                />                    <Text style={styles.geoLoadingText}>Recherche...</Text>
-                  </View>
-                )}
+                />
                 {geoInfo && (
                   <View style={styles.geoInfoContainer}>
                     <Ionicons name="location" size={16} color="#10B981" />
@@ -567,9 +565,9 @@ export default function DJRegisterScreen() {
                     </Text>
                   </View>
                 )}
-                {formData.ville.length >= 3 && !geoLoading && !geoInfo && (
+                {formData.code_postal.length === 5 && !geoLoading && !geoInfo && (
                   <Text style={styles.geoNotFound}>
-                    Ville non reconnue — la géolocalisation sera ajoutée manuellement
+                    Code postal non reconnu — vérifiez le code
                   </Text>
                 )}
               </View>
