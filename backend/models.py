@@ -41,7 +41,7 @@ class SiretVerificationResponse(BaseModel):
 
 
 class DJProfileCreate(BaseModel):
-    email: Optional[EmailStr] = None
+    email: Optional[str] = ""
     nom: str
     prenom: str
     nom_de_scene: str

@@ -40,7 +40,7 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
         geo_info = get_department_for_city(profile_data.ville)
     profile_dict = profile_data.dict()
     profile_dict["user_id"] = user["user_id"]
-    profile_dict["email"] = user["email"]
+    profile_dict["email"] = profile_data.email or user.get("email", "")
     profile_dict["siret_verified"] = True
     profile_dict["company_name"] = siret_result.company_name or ""
     profile_dict["created_at"] = datetime.now(timezone.utc)
