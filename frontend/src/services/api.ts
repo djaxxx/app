@@ -232,6 +232,28 @@ class ApiService {
     });
   }
 
+  // Zone Management
+  async getZoneStatus() {
+    return this.request<any>('/api/dj/zone-status');
+  }
+
+  async getAvailableDepartments() {
+    return this.request<any[]>('/api/dj/available-departments');
+  }
+
+  async addDepartmentZone(departmentCode: string, originUrl: string) {
+    return this.request<any>('/api/dj/zone/add-department', {
+      method: 'POST',
+      body: JSON.stringify({ department_code: departmentCode, origin_url: originUrl }),
+    });
+  }
+
+  async removeDepartmentZone(departmentCode: string) {
+    return this.request<any>(`/api/dj/zone/remove-department/${departmentCode}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Reviews
   async submitReview(data: {
     dj_user_id: string;

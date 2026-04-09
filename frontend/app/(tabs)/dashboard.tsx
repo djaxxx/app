@@ -287,6 +287,15 @@ export default function DashboardScreen() {
 
               <TouchableOpacity
                 style={styles.actionItem}
+                onPress={() => router.push('/zone-management')}
+              >
+                <Ionicons name="map" size={24} color="#3B82F6" />
+                <Text style={styles.actionText}>Zone d'intervention</Text>
+                <Ionicons name="chevron-forward" size={24} color="#666" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionItem}
                 onPress={() => router.push('/manage-reviews')}
               >
                 <Ionicons name="star" size={24} color="#F59E0B" />

@@ -59,7 +59,7 @@ export default function SearchScreen() {
         <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Entrez votre code postal..."
+          placeholder="Entrez le code postal de votre événement"
           keyboardType="numeric"
           onFilter={() => setShowFilters(!showFilters)}
         />

@@ -85,6 +85,7 @@ class DJProfileCreate(BaseModel):
     nom_de_scene: str
     telephone: str
     ville: str
+    code_postal: Optional[str] = ""
     department_code: Optional[str] = ""
     department_name: Optional[str] = ""
     region_code: Optional[str] = ""
@@ -92,6 +93,7 @@ class DJProfileCreate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     zone_intervention: List[str] = []
+    departments_zones: List[str] = []  # List of department codes where DJ is visible
     siret: str
     description: Optional[str] = ""
     annees_experience: Optional[int] = 0
@@ -716,8 +718,16 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
     if not tarif_valid:
         raise HTTPException(status_code=400, detail=tarif_error)
     
-    # Auto-geocode city if no coordinates provided
-    geo_info = get_department_for_city(profile_data.ville)
+    # Auto-geocode: prefer code_postal, fallback to city name
+    geo_info = None
+    code_postal = profile_data.code_postal or ""
+    if code_postal.strip():
+        geo_info = get_info_by_postal_code(code_postal.strip())
+        if geo_info:
+            # Auto-fill city from postal code
+            profile_data.ville = geo_info.get("city", profile_data.ville)
+    if not geo_info:
+        geo_info = get_department_for_city(profile_data.ville)
     
     # Create profile
     profile_dict = profile_data.dict()
@@ -744,6 +754,9 @@ async def register_dj(profile_data: DJProfileCreate, request: Request):
             profile_dict["latitude"] = geo_info.get("lat")
         if not profile_dict.get("longitude"):
             profile_dict["longitude"] = geo_info.get("lon")
+        # Initialize departments_zones with primary department (included in base subscription)
+        if geo_info.get("department_code"):
+            profile_dict["departments_zones"] = [geo_info["department_code"]]
     
     # Calculate completion and badge
     profile_dict["profil_complete_percent"] = calculate_profile_completion(profile_dict)
@@ -889,16 +902,11 @@ async def list_djs(
         if search_term.isdigit() and len(search_term) == 5:
             postal_info = get_info_by_postal_code(search_term)
             if postal_info:
-                # Match DJs in the same department
-                search_conditions.append({"department_code": postal_info["department_code"]})
-                search_conditions.append({"department_name": postal_info["department_name"]})
-                # Also check zone_intervention for region/department
-                search_conditions.append({"zone_intervention": {"$regex": postal_info["department_name"], "$options": "i"}})
-                if postal_info.get("region_name"):
-                    search_conditions.append({"zone_intervention": {"$regex": postal_info["region_name"], "$options": "i"}})
-                # Match cities resolved from this postal code
-                for city_name in postal_info.get("all_cities", []):
-                    search_conditions.append({"ville": {"$regex": city_name, "$options": "i"}})
+                # PRIMARY: Match DJs whose departments_zones contains this department
+                dept_code = postal_info["department_code"]
+                search_conditions.append({"departments_zones": dept_code})
+                # FALLBACK: Also match on legacy fields
+                search_conditions.append({"department_code": dept_code})
         elif len(search_term) >= 2:
             # Fallback: text search on ville, zone_intervention, region, department
             search_conditions = [
@@ -1205,6 +1213,158 @@ async def reject_review(review_id: str, request: Request):
     return {"message": "Avis rejeté"}
 
 # ===================
+# ZONE GEOGRAPHIQUE DJ
+# ===================
+ZONE_EXTENSION_PRICE = 20.00  # 20€/an per extra department
+MAX_DEPARTMENTS = 4
+
+@api_router.get("/dj/zone-status")
+async def get_zone_status(request: Request):
+    """Get DJ's current zone configuration"""
+    user_data = await require_dj(request)
+    profile = await db.dj_profiles.find_one({"user_id": user_data["user_id"]})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+    
+    departments_zones = profile.get("departments_zones", [])
+    primary_dept = profile.get("department_code", "")
+    
+    # Build detailed zone info
+    zones_detail = []
+    for dept_code in departments_zones:
+        dept_info = DEPARTMENTS_FRANCE.get(dept_code, {})
+        zones_detail.append({
+            "code": dept_code,
+            "name": dept_info.get("name", dept_code),
+            "is_primary": dept_code == primary_dept,
+        })
+    
+    return {
+        "primary_department": primary_dept,
+        "primary_department_name": DEPARTMENTS_FRANCE.get(primary_dept, {}).get("name", ""),
+        "departments_zones": departments_zones,
+        "zones_detail": zones_detail,
+        "total_departments": len(departments_zones),
+        "max_departments": MAX_DEPARTMENTS,
+        "extra_departments": max(0, len(departments_zones) - 1),
+        "extension_price": ZONE_EXTENSION_PRICE,
+    }
+
+@api_router.get("/dj/available-departments")
+async def get_available_departments(request: Request):
+    """Get list of departments the DJ can add"""
+    user_data = await require_dj(request)
+    profile = await db.dj_profiles.find_one({"user_id": user_data["user_id"]})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+    
+    current_zones = set(profile.get("departments_zones", []))
+    
+    all_depts = []
+    for code, info in sorted(DEPARTMENTS_FRANCE.items(), key=lambda x: x[0]):
+        all_depts.append({
+            "code": code,
+            "name": info["name"],
+            "selected": code in current_zones,
+        })
+    
+    return all_depts
+
+@api_router.post("/dj/zone/add-department")
+async def add_department_zone(request: Request):
+    """Add a department to DJ's zone (creates Stripe checkout for payment)"""
+    user_data = await require_dj(request)
+    body = await request.json()
+    dept_code = body.get("department_code", "").strip()
+    origin_url = body.get("origin_url", "")
+    
+    if not dept_code:
+        raise HTTPException(status_code=400, detail="Code département requis")
+    if dept_code not in DEPARTMENTS_FRANCE:
+        raise HTTPException(status_code=400, detail="Département non reconnu")
+    
+    profile = await db.dj_profiles.find_one({"user_id": user_data["user_id"]})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+    
+    current_zones = profile.get("departments_zones", [])
+    if dept_code in current_zones:
+        raise HTTPException(status_code=400, detail="Ce département est déjà dans votre zone")
+    if len(current_zones) >= MAX_DEPARTMENTS:
+        raise HTTPException(status_code=400, detail=f"Maximum {MAX_DEPARTMENTS} départements autorisés")
+    
+    dept_name = DEPARTMENTS_FRANCE[dept_code]["name"]
+    
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        
+        host_url = str(request.base_url).rstrip("/")
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        success_url = f"{origin_url}/zone/success?dept={dept_code}"
+        cancel_url = f"{origin_url}/zone/cancel"
+        
+        checkout_request = CheckoutSessionRequest(
+            amount=ZONE_EXTENSION_PRICE,
+            currency="eur",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "user_id": user_data["user_id"],
+                "type": "zone_extension",
+                "department_code": dept_code,
+                "department_name": dept_name,
+            }
+        )
+        
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        await db.payment_transactions.insert_one({
+            "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
+            "session_id": session.session_id,
+            "user_id": user_data["user_id"],
+            "amount": ZONE_EXTENSION_PRICE,
+            "currency": "eur",
+            "type": "zone_extension",
+            "department_code": dept_code,
+            "department_name": dept_name,
+            "status": "pending",
+            "payment_status": "initiated",
+            "created_at": datetime.now(timezone.utc)
+        })
+        
+        return {"checkout_url": session.url, "session_id": session.session_id, "department": dept_name, "amount": ZONE_EXTENSION_PRICE}
+    
+    except Exception as e:
+        logger.error(f"Zone extension checkout error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur paiement: {str(e)}")
+
+@api_router.delete("/dj/zone/remove-department/{dept_code}")
+async def remove_department_zone(dept_code: str, request: Request):
+    """Remove a department from DJ's zone (except primary)"""
+    user_data = await require_dj(request)
+    profile = await db.dj_profiles.find_one({"user_id": user_data["user_id"]})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil non trouvé")
+    
+    if dept_code == profile.get("department_code"):
+        raise HTTPException(status_code=400, detail="Impossible de retirer le département principal")
+    
+    current_zones = profile.get("departments_zones", [])
+    if dept_code not in current_zones:
+        raise HTTPException(status_code=400, detail="Ce département n'est pas dans votre zone")
+    
+    new_zones = [d for d in current_zones if d != dept_code]
+    await db.dj_profiles.update_one(
+        {"user_id": user_data["user_id"]},
+        {"$set": {"departments_zones": new_zones}}
+    )
+    
+    return {"message": f"Département {dept_code} retiré", "departments_zones": new_zones}
+
+# ===================
 # BOOST SPONSORISE
 # ===================
 BOOST_PLANS = {
@@ -1489,6 +1649,19 @@ async def stripe_webhook(request: Request):
                         "boost_plan": plan,
                     }}
                 )
+                
+                await db.payment_transactions.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": {"status": "completed", "payment_status": "paid"}}
+                )
+            elif user_id and payment_type == "zone_extension":
+                # Handle zone extension payment
+                dept_code = webhook_response.metadata.get("department_code")
+                if dept_code:
+                    await db.dj_profiles.update_one(
+                        {"user_id": user_id},
+                        {"$addToSet": {"departments_zones": dept_code}}
+                    )
                 
                 await db.payment_transactions.update_one(
                     {"session_id": webhook_response.session_id},

@@ -46,6 +46,9 @@ export default function RootLayout() {
         <Stack.Screen name="boost/success" options={{ title: 'Boost activé', headerShown: false }} />
         <Stack.Screen name="boost/cancel" options={{ title: 'Boost annulé', headerShown: false }} />
         <Stack.Screen name="my-contacts" options={{ title: 'Mes demandes', headerShown: false }} />
+        <Stack.Screen name="zone-management" options={{ title: 'Zone d\'intervention', headerShown: false }} />
+        <Stack.Screen name="zone/success" options={{ title: 'Zone ajoutée', headerShown: false }} />
+        <Stack.Screen name="zone/cancel" options={{ title: 'Zone annulée', headerShown: false }} />
       </Stack>
     </>
   );
