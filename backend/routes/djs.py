@@ -206,7 +206,8 @@ async def get_dj_dashboard(request: Request):
     if subscription_status == "trial":
         trial_end = profile.get("trial_end")
         if trial_end:
-            days_left = max(0, (trial_end - datetime.now(timezone.utc)).days)
+            te = trial_end if trial_end.tzinfo else trial_end.replace(tzinfo=timezone.utc)
+            days_left = max(0, (te - datetime.now(timezone.utc)).days)
             trial_info = {
                 "is_trial": True,
                 "trial_end": trial_end.isoformat() if hasattr(trial_end, 'isoformat') else str(trial_end),
