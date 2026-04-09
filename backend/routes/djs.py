@@ -28,17 +28,19 @@ async def check_trial_expiry(profile: dict) -> dict:
         return profile
 
     trial_end = profile.get("trial_end")
-    if trial_end and trial_end < datetime.now(timezone.utc):
-        # Trial expired
-        await db.dj_profiles.update_one(
-            {"user_id": profile["user_id"]},
-            {"$set": {
-                "subscription_status": "expired",
-                "is_active": False,
-            }}
-        )
-        profile["subscription_status"] = "expired"
-        profile["is_active"] = False
+    if trial_end:
+        te = trial_end if trial_end.tzinfo else trial_end.replace(tzinfo=timezone.utc)
+        if te < datetime.now(timezone.utc):
+            # Trial expired
+            await db.dj_profiles.update_one(
+                {"user_id": profile["user_id"]},
+                {"$set": {
+                    "subscription_status": "expired",
+                    "is_active": False,
+                }}
+            )
+            profile["subscription_status"] = "expired"
+            profile["is_active"] = False
     return profile
 
 
@@ -352,12 +354,14 @@ async def get_dj_profile(user_id: str):
     # Check trial expiry
     if dj.get("subscription_status") == "trial":
         trial_end = dj.get("trial_end")
-        if trial_end and trial_end < datetime.now(timezone.utc):
-            await db.dj_profiles.update_one(
-                {"user_id": user_id},
-                {"$set": {"subscription_status": "expired", "is_active": False}}
-            )
-            raise HTTPException(status_code=404, detail="DJ non trouve ou profil non visible")
+        if trial_end:
+            te = trial_end if trial_end.tzinfo else trial_end.replace(tzinfo=timezone.utc)
+            if te < datetime.now(timezone.utc):
+                await db.dj_profiles.update_one(
+                    {"user_id": user_id},
+                    {"$set": {"subscription_status": "expired", "is_active": False}}
+                )
+                raise HTTPException(status_code=404, detail="DJ non trouve ou profil non visible")
 
     await db.dj_profiles.update_one({"user_id": user_id}, {"$inc": {"nombre_vues": 1}})
     reviews = await db.reviews.find({"dj_user_id": user_id, "verified": True}).sort("created_at", -1).limit(10).to_list(10)
