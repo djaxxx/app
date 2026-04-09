@@ -72,6 +72,8 @@ class DJProfileCreate(BaseModel):
     photo_profil: Optional[str] = ""
     galerie_photos: List[str] = []
     galerie_videos: List[str] = []
+    assurance_rc_numero: Optional[str] = ""
+    assurance_rc_organisme: Optional[str] = ""
 
 
 class DJProfileUpdate(BaseModel):
@@ -102,6 +104,8 @@ class DJProfileUpdate(BaseModel):
     photo_profil: Optional[str] = None
     galerie_photos: Optional[List[str]] = None
     galerie_videos: Optional[List[str]] = None
+    assurance_rc_numero: Optional[str] = None
+    assurance_rc_organisme: Optional[str] = None
 
 
 class DJProfile(BaseModel):
@@ -131,6 +135,8 @@ class DJProfile(BaseModel):
     photo_profil: str = ""
     galerie_photos: List[str] = []
     galerie_videos: List[str] = []
+    assurance_rc_numero: str = ""
+    assurance_rc_organisme: str = ""
     note_moyenne: float = 0.0
     nombre_avis: int = 0
     nombre_vues: int = 0

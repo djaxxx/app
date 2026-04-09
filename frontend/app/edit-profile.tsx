@@ -42,6 +42,8 @@ export default function EditDJProfileScreen() {
     site_internet: '',
     photo_profil: '',
     galerie_photos: [] as string[],
+    assurance_rc_numero: '',
+    assurance_rc_organisme: '',
   });
 
   useEffect(() => {
@@ -67,6 +69,8 @@ export default function EditDJProfileScreen() {
           site_internet: profileData.site_internet || '',
           photo_profil: profileData.photo_profil || '',
           galerie_photos: profileData.galerie_photos || [],
+          assurance_rc_numero: profileData.assurance_rc_numero || '',
+          assurance_rc_organisme: profileData.assurance_rc_organisme || '',
         });
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -348,6 +352,26 @@ export default function EditDJProfileScreen() {
                 placeholderTextColor="#666"
                 autoCapitalize="none"
                 keyboardType="url"
+              />
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Assurance RC Professionnelle</Text>
+              <Text style={styles.label}>Organisme assureur</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.assurance_rc_organisme}
+                onChangeText={(text) => setFormData({ ...formData, assurance_rc_organisme: text })}
+                placeholder="Ex: AXA, MAIF, Allianz..."
+                placeholderTextColor="#666"
+              />
+              <Text style={styles.label}>N° de police RC Pro</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.assurance_rc_numero}
+                onChangeText={(text) => setFormData({ ...formData, assurance_rc_numero: text })}
+                placeholder="Numéro de votre contrat RC Pro"
+                placeholderTextColor="#666"
               />
             </View>
 

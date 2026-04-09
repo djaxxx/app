@@ -207,6 +207,8 @@ async def list_djs(
     for dj in djs:
         dj.pop("telephone", None)
         dj.pop("email", None)
+        dj.pop("assurance_rc_numero", None)
+        dj.pop("assurance_rc_organisme", None)
         if "boost_active" not in dj:
             dj["boost_active"] = False
         boost_end = dj.get("boost_end")
@@ -231,4 +233,7 @@ async def get_dj_profile(user_id: str):
             del review["_id"]
     dj_public = {**dj}
     dj_public["reviews"] = reviews
+    # Remove internal fields not visible to public
+    dj_public.pop("assurance_rc_numero", None)
+    dj_public.pop("assurance_rc_organisme", None)
     return dj_public

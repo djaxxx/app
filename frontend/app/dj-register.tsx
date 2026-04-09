@@ -62,6 +62,8 @@ export default function DJRegisterScreen() {
     site_internet: '',
     photo_profil: '',
     galerie_photos: [] as string[],
+    assurance_rc_numero: '',
+    assurance_rc_organisme: '',
   });
 
   useEffect(() => {
@@ -568,6 +570,28 @@ export default function DJRegisterScreen() {
                 )}
               </View>
 
+              <View style={styles.sectionDivider}>
+                <Text style={styles.sectionSubtitle}>Assurance RC Professionnelle (optionnel)</Text>
+              </View>
+
+              <Text style={styles.label}>Organisme assureur</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.assurance_rc_organisme}
+                onChangeText={(text) => setFormData({ ...formData, assurance_rc_organisme: text })}
+                placeholder="Ex: AXA, MAIF, Allianz..."
+                placeholderTextColor="#666"
+              />
+
+              <Text style={styles.label}>N° de police RC Pro</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.assurance_rc_numero}
+                onChangeText={(text) => setFormData({ ...formData, assurance_rc_numero: text })}
+                placeholder="Numéro de votre contrat RC Pro"
+                placeholderTextColor="#666"
+              />
+
               <Button
                 title="Suivant"
                 onPress={() => {
@@ -844,6 +868,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 20,
     marginTop: 8,
+  },
+  sectionDivider: {
+    marginTop: 20,
+    marginBottom: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  sectionSubtitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#8B5CF6',
+    marginBottom: 4,
   },
   inputGroup: {
     marginBottom: 20,
