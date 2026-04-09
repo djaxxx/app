@@ -478,6 +478,123 @@ async def verify_siret(request: SiretVerificationRequest):
 # ===================
 # AUTHENTICATION
 # ===================
+
+@api_router.post("/auth/register-email")
+async def register_email(request: Request, response: Response):
+    """Register a new user with email and password"""
+    import bcrypt
+    body = await request.json()
+    email = body.get("email", "").strip().lower()
+    password = body.get("password", "")
+    name = body.get("name", "").strip()
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email et mot de passe requis")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins 6 caractères")
+    if not name:
+        raise HTTPException(status_code=400, detail="Le nom est requis")
+    
+    # Check if email already exists
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=409, detail="Cet email est déjà utilisé")
+    
+    # Hash password
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    
+    user_id = f"user_{uuid.uuid4().hex[:12]}"
+    session_token = f"st_{uuid.uuid4().hex}"
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    
+    await db.users.insert_one({
+        "user_id": user_id,
+        "email": email,
+        "name": name,
+        "password_hash": hashed,
+        "auth_method": "email",
+        "picture": None,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    })
+    
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc),
+    })
+    
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7 * 24 * 60 * 60,
+    )
+    
+    return {
+        "user_id": user_id,
+        "email": email,
+        "name": name,
+        "picture": None,
+        "has_dj_profile": False,
+        "is_dj": False,
+    }
+
+@api_router.post("/auth/login-email")
+async def login_email(request: Request, response: Response):
+    """Login with email and password"""
+    import bcrypt
+    body = await request.json()
+    email = body.get("email", "").strip().lower()
+    password = body.get("password", "")
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email et mot de passe requis")
+    
+    user = await db.users.find_one({"email": email})
+    if not user or not user.get("password_hash"):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    
+    if not bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    
+    user_id = user["user_id"]
+    session_token = f"st_{uuid.uuid4().hex}"
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    
+    await db.user_sessions.delete_many({"user_id": user_id})
+    await db.user_sessions.insert_one({
+        "user_id": user_id,
+        "session_token": session_token,
+        "expires_at": expires_at,
+        "created_at": datetime.now(timezone.utc),
+    })
+    
+    response.set_cookie(
+        key="session_token",
+        value=session_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        path="/",
+        max_age=7 * 24 * 60 * 60,
+    )
+    
+    dj_profile = await db.dj_profiles.find_one({"user_id": user_id}, {"_id": 0})
+    
+    return {
+        "user_id": user_id,
+        "email": user["email"],
+        "name": user.get("name", ""),
+        "picture": user.get("picture"),
+        "has_dj_profile": dj_profile is not None,
+        "is_dj": dj_profile is not None,
+    }
+
 @api_router.post("/auth/session")
 async def create_session(request: Request, response: Response):
     """Exchange session_id for session_token"""

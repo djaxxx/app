@@ -40,6 +40,21 @@ class ApiService {
     return this.request<EventType[]>('/api/event-types');
   }
 
+  // Auth - Email
+  async registerEmail(email: string, password: string, name: string) {
+    return this.request<any>('/api/auth/register-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name }),
+    });
+  }
+
+  async loginEmail(email: string, password: string) {
+    return this.request<any>('/api/auth/login-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
   // Geographic Data
   async getRegions() {
     return this.request<{ code: string; name: string }[]>('/api/geo/regions');

@@ -28,6 +28,10 @@ export default function DJRegisterScreen() {
   const [siretVerifying, setSiretVerifying] = useState(false);
   const [siretResult, setSiretResult] = useState<any>(null);
   const [step, setStep] = useState(1);
+  const [authMode, setAuthMode] = useState<'choice' | 'email-register' | 'email-login'>('choice');
+  const [emailForm, setEmailForm] = useState({ email: '', password: '', name: '', confirmPassword: '' });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
   const [geoInfo, setGeoInfo] = useState<{
     department_name?: string;
     region_name?: string;
@@ -113,6 +117,39 @@ export default function DJRegisterScreen() {
     }
   };
 
+  const handleEmailRegister = async () => {
+    setAuthError('');
+    if (!emailForm.name.trim()) { setAuthError('Le nom est requis'); return; }
+    if (!emailForm.email.trim()) { setAuthError("L'email est requis"); return; }
+    if (emailForm.password.length < 6) { setAuthError('Mot de passe : 6 caractères minimum'); return; }
+    if (emailForm.password !== emailForm.confirmPassword) { setAuthError('Les mots de passe ne correspondent pas'); return; }
+    
+    setAuthLoading(true);
+    try {
+      await api.registerEmail(emailForm.email.trim(), emailForm.password, emailForm.name.trim());
+      await checkAuth();
+    } catch (error: any) {
+      setAuthError(error.message || "Erreur lors de l'inscription");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    setAuthError('');
+    if (!emailForm.email.trim() || !emailForm.password) { setAuthError('Email et mot de passe requis'); return; }
+    
+    setAuthLoading(true);
+    try {
+      await api.loginEmail(emailForm.email.trim(), emailForm.password);
+      await checkAuth();
+    } catch (error: any) {
+      setAuthError(error.message || 'Email ou mot de passe incorrect');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const verifySiret = async () => {
     if (!formData.siret || formData.siret.length !== 14) {
       Alert.alert('Erreur', 'Le SIRET doit contenir 14 chiffres');
@@ -193,14 +230,150 @@ export default function DJRegisterScreen() {
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.authRequired}>
-          <Ionicons name="lock-closed" size={64} color="#8B5CF6" />
-          <Text style={styles.authTitle}>Connexion requise</Text>
-          <Text style={styles.authText}>
-            Connectez-vous pour créer votre profil DJ professionnel
-          </Text>
-          <Button title="Se connecter avec Google" onPress={handleLogin} style={styles.loginButton} />
-        </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+        >
+          <ScrollView contentContainerStyle={styles.authContainer}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.authBack}>
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            <Ionicons name="musical-notes" size={64} color="#8B5CF6" />
+            <Text style={styles.authTitle}>Devenir DJ</Text>
+            <Text style={styles.authText}>
+              Créez votre compte pour rejoindre le réseau DJ Match
+            </Text>
+
+            {authMode === 'choice' && (
+              <View style={styles.authChoices}>
+                <TouchableOpacity style={styles.googleButton} onPress={handleLogin}>
+                  <Ionicons name="logo-google" size={22} color="#fff" />
+                  <Text style={styles.googleButtonText}>Continuer avec Google</Text>
+                </TouchableOpacity>
+
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>ou</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity style={styles.emailButton} onPress={() => { setAuthMode('email-register'); setAuthError(''); }}>
+                  <Ionicons name="mail" size={22} color="#fff" />
+                  <Text style={styles.emailButtonText}>S'inscrire avec un email</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => { setAuthMode('email-login'); setAuthError(''); }}>
+                  <Text style={styles.switchText}>Déjà un compte ? Se connecter</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {authMode === 'email-register' && (
+              <View style={styles.authForm}>
+                <TextInput
+                  style={styles.authInput}
+                  placeholder="Votre nom complet"
+                  placeholderTextColor="#666"
+                  value={emailForm.name}
+                  onChangeText={(t) => setEmailForm(f => ({ ...f, name: t }))}
+                  autoCapitalize="words"
+                />
+                <TextInput
+                  style={styles.authInput}
+                  placeholder="Votre email"
+                  placeholderTextColor="#666"
+                  value={emailForm.email}
+                  onChangeText={(t) => setEmailForm(f => ({ ...f, email: t }))}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={styles.authInput}
+                  placeholder="Mot de passe (6 car. min)"
+                  placeholderTextColor="#666"
+                  value={emailForm.password}
+                  onChangeText={(t) => setEmailForm(f => ({ ...f, password: t }))}
+                  secureTextEntry
+                />
+                <TextInput
+                  style={styles.authInput}
+                  placeholder="Confirmer le mot de passe"
+                  placeholderTextColor="#666"
+                  value={emailForm.confirmPassword}
+                  onChangeText={(t) => setEmailForm(f => ({ ...f, confirmPassword: t }))}
+                  secureTextEntry
+                />
+
+                {authError ? <Text style={styles.authErrorText}>{authError}</Text> : null}
+
+                <TouchableOpacity
+                  style={[styles.submitButton, authLoading && styles.submitButtonDisabled]}
+                  onPress={handleEmailRegister}
+                  disabled={authLoading}
+                >
+                  {authLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Créer mon compte</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => { setAuthMode('email-login'); setAuthError(''); }}>
+                  <Text style={styles.switchText}>Déjà un compte ? Se connecter</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => setAuthMode('choice')}>
+                  <Text style={styles.switchTextSecondary}>Retour aux options</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {authMode === 'email-login' && (
+              <View style={styles.authForm}>
+                <TextInput
+                  style={styles.authInput}
+                  placeholder="Votre email"
+                  placeholderTextColor="#666"
+                  value={emailForm.email}
+                  onChangeText={(t) => setEmailForm(f => ({ ...f, email: t }))}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={styles.authInput}
+                  placeholder="Mot de passe"
+                  placeholderTextColor="#666"
+                  value={emailForm.password}
+                  onChangeText={(t) => setEmailForm(f => ({ ...f, password: t }))}
+                  secureTextEntry
+                />
+
+                {authError ? <Text style={styles.authErrorText}>{authError}</Text> : null}
+
+                <TouchableOpacity
+                  style={[styles.submitButton, authLoading && styles.submitButtonDisabled]}
+                  onPress={handleEmailLogin}
+                  disabled={authLoading}
+                >
+                  {authLoading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Se connecter</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => { setAuthMode('email-register'); setAuthError(''); }}>
+                  <Text style={styles.switchText}>Pas de compte ? S'inscrire</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => setAuthMode('choice')}>
+                  <Text style={styles.switchTextSecondary}>Retour aux options</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -751,17 +924,133 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
+  authContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+  },
+  authBack: {
+    alignSelf: 'flex-start',
+    padding: 8,
+    marginBottom: 16,
+  },
   authTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
-    marginTop: 24,
+    marginTop: 16,
+    marginBottom: 8,
   },
   authText: {
-    fontSize: 16,
-    color: '#888',
+    fontSize: 15,
+    color: '#999',
     textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  authChoices: {
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4285F4',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: '100%',
+  },
+  googleButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#333',
+  },
+  dividerText: {
+    color: '#666',
+    marginHorizontal: 12,
+    fontSize: 14,
+  },
+  emailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: '100%',
+    marginBottom: 16,
+  },
+  emailButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  switchText: {
+    color: '#8B5CF6',
+    fontSize: 14,
     marginTop: 12,
+  },
+  switchTextSecondary: {
+    color: '#666',
+    fontSize: 13,
+    marginTop: 12,
+  },
+  authForm: {
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  authInput: {
+    width: '100%',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 14,
+    color: '#fff',
+    fontSize: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  authErrorText: {
+    color: '#EF4444',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  submitButton: {
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   loginButton: {
     marginTop: 32,
