@@ -16,9 +16,12 @@ async def get_current_user(request: Request):
     session = await db.user_sessions.find_one({"session_token": session_token})
     if not session:
         return None
-    if session.get("expires_at") and session["expires_at"] < datetime.now(timezone.utc):
-        await db.user_sessions.delete_one({"session_token": session_token})
-        return None
+    if session.get("expires_at"):
+        exp = session["expires_at"]
+        exp = exp if exp.tzinfo else exp.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            await db.user_sessions.delete_one({"session_token": session_token})
+            return None
     user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
     return user
 
