@@ -68,15 +68,17 @@ export default function HomeScreen() {
     loadData('', null);
   }, []);
 
-  // Debounced search when query changes
+  // Debounced search when query changes, instant for event type filter
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
     setLoading(true);
+    // Instant search for event type changes, debounced for text input
+    const delay = searchQuery.length > 0 ? 500 : 0;
     debounceTimerRef.current = setTimeout(() => {
       loadData(searchQuery, selectedEventType);
-    }, 500);
+    }, delay);
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
