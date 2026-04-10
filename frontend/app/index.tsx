@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 0,
     paddingBottom: 0,
-    marginBottom: -50,
+    marginBottom: -10,
   },
   heroSection: {
     alignItems: 'center',
@@ -386,8 +386,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoImage: {
-    width: 850,
-    height: 850,
+    width: 350,
+    height: 350,
     borderRadius: 32,
   },
   logo: {
