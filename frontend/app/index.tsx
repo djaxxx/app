@@ -165,10 +165,6 @@ export default function HomeScreen() {
         {/* Search - PROMINENT */}
         <View style={styles.searchSection}>
           <Text style={styles.searchCTA}>Trouver mon DJ maintenant !</Text>
-          <View style={styles.searchLabel}>
-            <Ionicons name="location" size={20} color="#8B5CF6" />
-            <Text style={styles.searchLabelText}>Trouvez votre DJ</Text>
-          </View>
           <View style={styles.searchBoxWrapper}>
             <View style={styles.searchIconCircle}>
               <Ionicons name="search" size={22} color="#fff" />
@@ -427,7 +423,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   searchBoxWrapper: {
     flexDirection: 'row',
