@@ -181,7 +181,7 @@ export default function HomeScreen() {
                 style={styles.searchGlassInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Entre le code postal de votre Evènement"
+                placeholder="Entrez le code postal de votre événement"
                 placeholderTextColor="rgba(255,255,255,0.55)"
                 keyboardType="numeric"
                 maxLength={5}
@@ -495,8 +495,8 @@ const styles = StyleSheet.create({
   searchGlassInput: {
     flex: 1,
     color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     paddingVertical: 0,
   },
   searchGlassSearchBtn: {
