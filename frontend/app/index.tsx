@@ -133,11 +133,11 @@ export default function HomeScreen() {
 
         <View style={styles.heroSection}>
           <Text style={styles.heroAnnuaire}>
-            L'annuaire des DJ professionnels en France
+            L'annuaire des DJ professionnels en France 🔵 ⚪ 🔴
           </Text>
           <Text style={styles.heroTitle}>
             Trouvez votre DJ PRO{'\n'}
-            <Text style={styles.heroHighlight}>en 2 minutes chrono ⏱️ !</Text>
+            <Text style={styles.heroHighlight}>en 2 minutes chrono⏱️ !</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
             Mariage, Anniversaire, Soiree... Trouvez votre DJ, declare, recommande pres de chez vous ! 🏅
