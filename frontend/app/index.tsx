@@ -164,6 +164,7 @@ export default function HomeScreen() {
 
         {/* Search - PROMINENT */}
         <View style={styles.searchSection}>
+          <Text style={styles.searchCTA}>Trouver mon DJ maintenant !</Text>
           <View style={styles.searchLabel}>
             <Ionicons name="location" size={20} color="#8B5CF6" />
             <Text style={styles.searchLabelText}>Trouvez votre DJ</Text>
@@ -420,6 +421,13 @@ const styles = StyleSheet.create({
   searchSection: {
     paddingHorizontal: 20,
     marginBottom: 16,
+  },
+  searchCTA: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   searchBoxWrapper: {
     flexDirection: 'row',
