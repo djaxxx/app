@@ -133,9 +133,10 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.heroSection}>
-          <Text style={styles.heroAnnuaire}>
-            L'annuaire des DJ professionnels en France 🔵 ⚪ 🔴
-          </Text>
+          <View style={styles.heroAnnuaire}>
+            <Text style={styles.heroAnnuaireText}>L'annuaire des DJ professionnels</Text>
+            <Text style={styles.heroAnnuaireText}>en France 🔵 ⚪ 🔴</Text>
+          </View>
           <Text style={styles.heroTitle}>
             Trouvez votre DJ PRO{'\n'}
             <Text style={styles.heroHighlight}>en 2 minutes chrono⏱️</Text>
@@ -319,18 +320,21 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   heroAnnuaire: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#8B5CF6',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    alignItems: 'center',
     marginBottom: 12,
-    textAlign: 'center',
     backgroundColor: 'rgba(139, 92, 246, 0.1)',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
     overflow: 'hidden',
+  },
+  heroAnnuaireText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#8B5CF6',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   heroTitle: {
     fontSize: 26,
