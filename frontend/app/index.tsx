@@ -140,7 +140,7 @@ export default function HomeScreen() {
             <Text style={styles.heroHighlight}>en 2 minutes chrono !</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
-            L'appli des DJ declares, assures, experimentes. Ici, la qualite est garantie 🎧
+            Mariage, Anniversaire, Soiree... Trouvez votre DJ, declare, recommande pres de chez vous ! 🏅
           </Text>
         </View>
 
