@@ -10,11 +10,12 @@ import {
   Dimensions,
   Image,
   TextInput,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-// LinearGradient removed for simplicity
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../src/stores/authStore';
 import { api } from '../src/services/api';
 import { DJCard } from '../src/components/DJCard';
@@ -162,28 +163,46 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search - PROMINENT */}
+        {/* Search - GLASSMORPHISM DESIGN */}
         <View style={styles.searchSection}>
-          <Text style={styles.searchCTA}>Trouver mon DJ maintenant !</Text>
-          <View style={styles.searchBoxWrapper}>
-            <View style={styles.searchIconCircle}>
-              <Ionicons name="search" size={22} color="#fff" />
+          {/* CTA Button - Glassmorphism */}
+          <TouchableOpacity activeOpacity={0.85} style={styles.ctaGlassOuter}>
+            <LinearGradient
+              colors={['#5B21B6', '#7C3AED', '#6D28D9']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaGlassGradient}
+            >
+              <View style={styles.ctaGlassInner}>
+                <Text style={styles.ctaGlassEmoji}>🔥</Text>
+                <Text style={styles.ctaGlassText}>Trouver mon DJ maintenant</Text>
+                <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.8)" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* Search Bar - Glassmorphism */}
+          <View style={styles.searchGlassOuter}>
+            <View style={styles.searchGlassInner}>
+              <Ionicons name="location-sharp" size={20} color="#A78BFA" style={styles.searchGlassIcon} />
+              <TextInput
+                style={styles.searchGlassInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Où se déroule votre événement ?"
+                placeholderTextColor="rgba(255,255,255,0.45)"
+                keyboardType="numeric"
+                maxLength={5}
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 ? (
+                <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchGlassClearBtn}>
+                  <Ionicons name="close-circle" size={22} color="#888" />
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="search" size={20} color="#A78BFA" style={styles.searchGlassSearchIcon} />
+              )}
             </View>
-            <TextInput
-              style={styles.searchBoxInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Indiquez le code postal de votre evenement"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
-              maxLength={5}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClearBtn}>
-                <Ionicons name="close-circle" size={22} color="#888" />
-              </TouchableOpacity>
-            )}
           </View>
         </View>
 
@@ -417,38 +436,78 @@ const styles = StyleSheet.create({
   searchSection: {
     paddingHorizontal: 20,
     marginBottom: 16,
+    gap: 12,
   },
-  searchCTA: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 6,
+  // CTA Button - Glassmorphism
+  ctaGlassOuter: {
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: 'rgba(167, 139, 250, 0.55)',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 24px rgba(139, 92, 246, 0.45), 0 0 60px rgba(139, 92, 246, 0.18), inset 0 1px 0 rgba(255,255,255,0.2)',
+      },
+      default: {},
+    }),
   },
-  searchBoxWrapper: {
+  ctaGlassGradient: {
+    borderRadius: 28,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+  },
+  ctaGlassInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    height: 54,
+    justifyContent: 'center',
   },
-  searchBoxInput: {
+  ctaGlassEmoji: {
+    fontSize: 26,
+    marginRight: 12,
+  },
+  ctaGlassText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    flex: 1,
+  },
+  // Search Bar - Glassmorphism
+  searchGlassOuter: {
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: 'rgba(167, 139, 250, 0.35)',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 18px rgba(139, 92, 246, 0.22), 0 0 40px rgba(139, 92, 246, 0.08)',
+      },
+      default: {},
+    }),
+  },
+  searchGlassInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(91, 33, 182, 0.22)',
+    borderRadius: 28,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  searchGlassIcon: {
+    marginRight: 12,
+  },
+  searchGlassInput: {
     flex: 1,
     color: '#fff',
-    fontSize: 15,
-    height: '100%',
-    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '500',
+    paddingVertical: 0,
   },
-  searchIconRight: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 5,
+  searchGlassSearchIcon: {
+    marginLeft: 12,
+  },
+  searchGlassClearBtn: {
+    marginLeft: 8,
   },
   mapCTAButton: {
     marginHorizontal: 20,
