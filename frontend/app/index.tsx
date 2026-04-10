@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 0,
     paddingBottom: 0,
-    marginBottom: -30,
+    marginBottom: -50,
   },
   heroSection: {
     alignItems: 'center',
