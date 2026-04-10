@@ -137,7 +137,7 @@ export default function HomeScreen() {
           </Text>
           <Text style={styles.heroTitle}>
             Trouvez votre DJ PRO{'\n'}
-            <Text style={styles.heroHighlight}>en 2 minutes chrono ! ⏱️</Text>
+            <Text style={styles.heroHighlight}>en 2 minutes chrono ⏱️ !</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
             Mariage, Anniversaire, Soiree... Trouvez votre DJ, declare, recommande pres de chez vous ! 🏅
