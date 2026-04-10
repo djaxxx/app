@@ -140,7 +140,7 @@ export default function HomeScreen() {
             <Text style={styles.heroHighlight}>pour votre evenement</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
-            L'appli des DJ declares, assures, experimentes.{'\n'}Ici, la qualite est garantie. 🎧
+            L'appli des DJ declares, assures, experimentes. Ici, la qualite est garantie 🎧
           </Text>
         </View>
 
