@@ -453,21 +453,13 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 40,
   },
-  // CTA Button - Neon border, neutral interior
+  // CTA Button - Clean, no border
   ctaGlassOuter: {
     borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: '#A78BFA',
     backgroundColor: 'rgba(15, 15, 40, 0.85)',
     paddingVertical: 14,
     paddingHorizontal: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 0 10px rgba(167, 139, 250, 0.4), 0 0 25px rgba(139, 92, 246, 0.15)',
-      },
-      default: {},
-    }),
   },
   ctaGradientFill: {
     flexDirection: 'row',
