@@ -22,6 +22,7 @@ import { DJCard } from '../src/components/DJCard';
 import { SearchBar } from '../src/components/SearchBar';
 import { Button } from '../src/components/Button';
 import { DJProfile, EventType } from '../src/types';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 const { width } = Dimensions.get('window');
 
@@ -126,7 +127,7 @@ export default function HomeScreen() {
 
         <View style={styles.logoContainer}>
           <Image
-            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/8ordcnwn_Design%20sans%20titre%20%283%29.png' }}
+            source={{ uri: `${API_URL}/api/uploads/logo_djmatch.jpg` }}
             style={styles.logoImage}
             resizeMode="contain"
           />
