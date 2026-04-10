@@ -305,16 +305,16 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 4,
   },
   topBarSpacer: {
     flex: 1,
   },
   logoContainer: {
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: 0,
     paddingBottom: 0,
-    marginBottom: -8,
+    marginBottom: -16,
   },
   heroSection: {
     alignItems: 'center',
