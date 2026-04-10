@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Dimensions,
   Image,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -162,14 +163,32 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search */}
+        {/* Search - PROMINENT */}
         <View style={styles.searchSection}>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Indiquez le code postal où aura lieu votre événement"
-            keyboardType="numeric"
-          />
+          <View style={styles.searchLabel}>
+            <Ionicons name="location" size={20} color="#8B5CF6" />
+            <Text style={styles.searchLabelText}>Trouvez votre DJ</Text>
+          </View>
+          <View style={styles.searchBoxWrapper}>
+            <View style={styles.searchIconCircle}>
+              <Ionicons name="search" size={22} color="#fff" />
+            </View>
+            <TextInput
+              style={styles.searchBoxInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Indiquez le code postal de votre evenement"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="numeric"
+              maxLength={5}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClearBtn}>
+                <Ionicons name="close-circle" size={22} color="#888" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Map CTA Button */}
@@ -389,6 +408,47 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     paddingHorizontal: 20,
+    marginBottom: 4,
+  },
+  searchLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  searchLabelText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  searchBoxWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    paddingHorizontal: 4,
+    height: 58,
+  },
+  searchIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#8B5CF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  searchBoxInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+    height: '100%',
+  },
+  searchClearBtn: {
+    padding: 8,
   },
   mapCTAButton: {
     marginHorizontal: 20,
