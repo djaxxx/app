@@ -137,11 +137,61 @@ export default function HomeScreen() {
           </Text>
           <Text style={styles.heroTitle}>
             Trouvez votre DJ PRO{'\n'}
-            <Text style={styles.heroHighlight}>en 2 minutes chrono⏱️ !</Text>
+            <Text style={styles.heroHighlight}>en 2 minutes chrono⏱️</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
             Mariage, Anniversaire, Soiree... Trouvez votre DJ, declare, recommande pres de chez vous ! 🏅
           </Text>
+        </View>
+
+        {/* Stat Badges */}
+        <View style={styles.statBadgesSection}>
+          <View style={styles.statBadge}>
+            <Text style={styles.statBadgeEmoji}>⭐</Text>
+            <Text style={styles.statBadgeText}><Text style={styles.statBadgeBold}>4.8/5</Text> sur +200 evenements</Text>
+          </View>
+          <View style={styles.statBadge}>
+            <Text style={styles.statBadgeEmoji}>🎧</Text>
+            <Text style={styles.statBadgeText}><Text style={styles.statBadgeBold}>+500 DJ</Text> partout en France</Text>
+          </View>
+          <View style={styles.statBadge}>
+            <Text style={styles.statBadgeEmoji}>✅</Text>
+            <Text style={styles.statBadgeText}><Text style={styles.statBadgeBold}>+1000</Text> clients satisfaits</Text>
+          </View>
+        </View>
+
+        {/* CTA Button */}
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={() => {
+            if (ctaSearchRef?.current) {
+              ctaSearchRef.current.focus();
+            }
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.ctaButtonText}>🔥 Trouver mon DJ maintenant</Text>
+          <Ionicons name="chevron-forward" size={22} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Search */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchBoxWrapper}>
+            <Ionicons name="location-outline" size={20} color="#8B5CF6" style={{ marginLeft: 14 }} />
+            <TextInput
+              style={styles.searchBoxInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Ou se deroule votre evenement ?"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="numeric"
+              maxLength={5}
+              returnKeyType="search"
+            />
+            <View style={styles.searchIconRight}>
+              <Ionicons name="search" size={20} color="#fff" />
+            </View>
+          </View>
         </View>
 
         {/* Trust Badges - 3 blocs */}
@@ -149,45 +199,26 @@ export default function HomeScreen() {
           <View style={styles.trustRow3}>
             <View style={styles.trustBadge3}>
               <Text style={styles.trustEmoji}>✅</Text>
-              <Text style={styles.trustText3}>DJ verifies avec SIRET et Assurance</Text>
+              <Text style={styles.trustBadgeTitle}>DJ verifies</Text>
+              <Text style={styles.trustBadgeSub}>SIRET + assurance</Text>
             </View>
             <View style={styles.trustBadge3}>
-              <Text style={styles.trustEmoji}>✨</Text>
-              <Text style={styles.trustText3}>Avis clients Reel</Text>
+              <Text style={styles.trustEmoji}>⭐</Text>
+              <Text style={styles.trustBadgeTitle}>Avis clients</Text>
+              <Text style={styles.trustBadgeSub}>reels</Text>
             </View>
             <View style={styles.trustBadge3}>
-              <Text style={styles.trustEmoji}>🛡️</Text>
-              <Text style={styles.trustText3}>Reservation simple</Text>
+              <Text style={styles.trustEmoji}>🔒</Text>
+              <Text style={styles.trustBadgeTitle}>Reservation</Text>
+              <Text style={styles.trustBadgeSub}>simple et securisee</Text>
             </View>
           </View>
         </View>
 
-        {/* Search - PROMINENT */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchLabel}>
-            <Ionicons name="location" size={20} color="#8B5CF6" />
-            <Text style={styles.searchLabelText}>Trouvez votre DJ</Text>
-          </View>
-          <View style={styles.searchBoxWrapper}>
-            <View style={styles.searchIconCircle}>
-              <Ionicons name="search" size={22} color="#fff" />
-            </View>
-            <TextInput
-              style={styles.searchBoxInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Indiquez le code postal de votre evenement"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
-              maxLength={5}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClearBtn}>
-                <Ionicons name="close-circle" size={22} color="#888" />
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Tagline */}
+        <View style={styles.taglineSection}>
+          <Text style={styles.taglineMain}>Fini les mauvaises surprises.</Text>
+          <Text style={styles.taglineSub}>Que des DJ fiables.</Text>
         </View>
 
         {/* Map CTA Button */}
@@ -308,7 +339,7 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   heroAnnuaire: {
     fontSize: 18,
@@ -364,12 +395,79 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 6,
   },
-  trustText3: {
-    color: '#ddd',
-    fontSize: 11,
-    fontWeight: '600',
+  trustBadgeTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 15,
+  },
+  trustBadgeSub: {
+    color: '#999',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  statBadgesSection: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.06)',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    gap: 12,
+  },
+  statBadgeEmoji: {
+    fontSize: 22,
+  },
+  statBadgeText: {
+    color: '#ccc',
+    fontSize: 15,
+  },
+  statBadgeBold: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingVertical: 18,
+    borderRadius: 30,
+    backgroundColor: '#8B5CF6',
+    borderWidth: 2,
+    borderColor: '#A78BFA',
+    gap: 8,
+  },
+  ctaButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  taglineSection: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
+  taglineMain: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  taglineSub: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -419,47 +517,32 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     paddingHorizontal: 20,
-    marginBottom: 4,
-  },
-  searchLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  searchLabelText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '800',
+    marginBottom: 16,
   },
   searchBoxWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
-    paddingHorizontal: 4,
-    height: 58,
-  },
-  searchIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#8B5CF6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    height: 54,
   },
   searchBoxInput: {
     flex: 1,
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
     height: '100%',
+    marginLeft: 10,
   },
-  searchClearBtn: {
-    padding: 8,
+  searchIconRight: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 5,
   },
   mapCTAButton: {
     marginHorizontal: 20,
