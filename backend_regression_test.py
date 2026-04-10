@@ -1,729 +1,622 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend Regression Test Suite for DJ Connect France
-Tests ALL API endpoints in sequence with cookie-based authentication.
+FULL REGRESSION TEST for DJ Match France
+Tests ALL endpoints as requested in the review request.
+
+Test Categories:
+1. AUTH SYSTEM (recently rewritten)
+2. FREE TRIAL SYSTEM (NEW)
+3. ADMIN PANEL ENDPOINTS (NEW)
+4. ADMIN BYPASS features
+5. SEARCH BY POSTAL CODE (CRITICAL FIX)
+6. CORE ENDPOINTS (regression)
 """
 
 import requests
 import json
 import sys
-import time
+import base64
 from datetime import datetime
 
-# Backend URL from frontend .env
-BACKEND_URL = "https://dj-directory-fr.preview.emergentagent.com"
-API_BASE = f"{BACKEND_URL}/api"
+# Configuration
+BASE_URL = "https://dj-directory-fr.preview.emergentagent.com/api"
+ADMIN_EMAIL = "adrien.sebert@gmail.com"
+ADMIN_PASSWORD = "test123"
+TEST_SIRET = "44306184100047"  # Google France
 
-# Test data
-TEST_BASE64_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-TIMESTAMP = int(time.time())
-TEST_EMAIL = f"fulltest_{TIMESTAMP}@test.com"
-TEST_PASSWORD = "Test12345!"
-TEST_NAME = "DJ FullTest"
-
-# Global session for cookie persistence
-session = requests.Session()
-session.timeout = 10
-
-# Test results tracking
-test_results = {}
-user_id = None
-dj_user_id = None
-
-def log_test(test_name, success, details=""):
-    """Log test result."""
-    status = "✅ PASS" if success else "❌ FAIL"
-    print(f"{status} {test_name}")
-    if details:
-        print(f"    {details}")
-    test_results[test_name] = {"success": success, "details": details}
-    return success
-
-def test_health_static():
-    """Test health and static endpoints."""
-    print("\n🔍 1. HEALTH & STATIC ENDPOINTS")
-    
-    # GET /api/
-    try:
-        response = session.get(f"{API_BASE}/")
-        success = response.status_code == 200 and "message" in response.json()
-        log_test("GET /api/", success, f"Status: {response.status_code}")
-    except Exception as e:
-        log_test("GET /api/", False, str(e))
-    
-    # GET /api/health
-    try:
-        response = session.get(f"{API_BASE}/health")
-        data = response.json()
-        success = response.status_code == 200 and data.get("status") == "healthy"
-        log_test("GET /api/health", success, f"Status: {data.get('status')}")
-    except Exception as e:
-        log_test("GET /api/health", False, str(e))
-    
-    # GET /api/event-types
-    try:
-        response = session.get(f"{API_BASE}/event-types")
-        data = response.json()
-        success = response.status_code == 200 and len(data) == 8
-        log_test("GET /api/event-types", success, f"Found {len(data)} event types")
-    except Exception as e:
-        log_test("GET /api/event-types", False, str(e))
-
-def test_auth_email():
-    """Test email registration and login."""
-    global user_id
-    print("\n🔍 2. EMAIL AUTHENTICATION")
-    
-    # POST /api/auth/register-email
-    try:
-        payload = {
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD,
-            "name": TEST_NAME
-        }
-        response = session.post(f"{API_BASE}/auth/register-email", json=payload)
-        success = response.status_code == 200
-        if success:
-            data = response.json()
-            user_id = data.get("user_id")
-        log_test("POST /api/auth/register-email", success, f"User ID: {user_id}")
-    except Exception as e:
-        log_test("POST /api/auth/register-email", False, str(e))
-    
-    # GET /api/auth/me (with cookie)
-    try:
-        response = session.get(f"{API_BASE}/auth/me")
-        data = response.json()
-        success = response.status_code == 200 and data.get("email") == TEST_EMAIL
-        log_test("GET /api/auth/me (after register)", success, f"Email: {data.get('email')}")
-    except Exception as e:
-        log_test("GET /api/auth/me (after register)", False, str(e))
-    
-    # POST /api/auth/logout
-    try:
-        response = session.post(f"{API_BASE}/auth/logout")
-        success = response.status_code == 200
-        log_test("POST /api/auth/logout", success)
-    except Exception as e:
-        log_test("POST /api/auth/logout", False, str(e))
-    
-    # POST /api/auth/login-email
-    try:
-        payload = {
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        }
-        response = session.post(f"{API_BASE}/auth/login-email", json=payload)
-        success = response.status_code == 200
-        log_test("POST /api/auth/login-email", success)
-    except Exception as e:
-        log_test("POST /api/auth/login-email", False, str(e))
-    
-    # GET /api/auth/me (after login)
-    try:
-        response = session.get(f"{API_BASE}/auth/me")
-        data = response.json()
-        success = response.status_code == 200 and data.get("email") == TEST_EMAIL
-        log_test("GET /api/auth/me (after login)", success, f"Email: {data.get('email')}")
-    except Exception as e:
-        log_test("GET /api/auth/me (after login)", False, str(e))
-
-def test_siret_verification():
-    """Test SIRET verification endpoints."""
-    print("\n🔍 3. SIRET VERIFICATION")
-    
-    # Valid SIRET
-    try:
-        payload = {"siret": "44306184100047"}
-        response = session.post(f"{API_BASE}/verify-siret", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and data.get("valid") == True
-        log_test("POST /api/verify-siret (valid)", success, f"Company: {data.get('company_name', 'N/A')}")
-    except Exception as e:
-        log_test("POST /api/verify-siret (valid)", False, str(e))
-    
-    # Invalid SIRET (all zeros)
-    try:
-        payload = {"siret": "00000000000000"}
-        response = session.post(f"{API_BASE}/verify-siret", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and data.get("valid") == False
-        log_test("POST /api/verify-siret (invalid zeros)", success)
-    except Exception as e:
-        log_test("POST /api/verify-siret (invalid zeros)", False, str(e))
-    
-    # Invalid SIRET (wrong length)
-    try:
-        payload = {"siret": "123"}
-        response = session.post(f"{API_BASE}/verify-siret", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and data.get("valid") == False and ("14 digits" in data.get("message", "") or "14 chiffres" in data.get("message", ""))
-        log_test("POST /api/verify-siret (wrong length)", success, data.get("message", ""))
-    except Exception as e:
-        log_test("POST /api/verify-siret (wrong length)", False, str(e))
-
-def test_geo_endpoints():
-    """Test geographic endpoints."""
-    print("\n🔍 4. GEOGRAPHIC ENDPOINTS")
-    
-    # GET /api/geo/regions
-    try:
-        response = session.get(f"{API_BASE}/geo/regions")
-        data = response.json()
-        success = response.status_code == 200 and len(data) == 18
-        log_test("GET /api/geo/regions", success, f"Found {len(data)} regions")
-    except Exception as e:
-        log_test("GET /api/geo/regions", False, str(e))
-    
-    # GET /api/geo/departments
-    try:
-        response = session.get(f"{API_BASE}/geo/departments")
-        data = response.json()
-        success = response.status_code == 200 and len(data) >= 95  # Should be ~100
-        log_test("GET /api/geo/departments", success, f"Found {len(data)} departments")
-    except Exception as e:
-        log_test("GET /api/geo/departments", False, str(e))
-    
-    # GET /api/geo/departments?region_code=IDF (Île-de-France)
-    try:
-        response = session.get(f"{API_BASE}/geo/departments?region_code=IDF")
-        data = response.json()
-        success = response.status_code == 200 and len(data) > 0
-        log_test("GET /api/geo/departments (filtered)", success, f"Found {len(data)} departments in IDF")
-    except Exception as e:
-        log_test("GET /api/geo/departments (filtered)", False, str(e))
-    
-    # GET /api/geo/lookup-city?city=Paris
-    try:
-        response = session.get(f"{API_BASE}/geo/lookup-city?city=Paris")
-        data = response.json()
-        success = response.status_code == 200 and "department_name" in data and "region_name" in data
-        log_test("GET /api/geo/lookup-city", success, f"Paris: {data.get('department_name')} / {data.get('region_name')}")
-    except Exception as e:
-        log_test("GET /api/geo/lookup-city", False, str(e))
-    
-    # GET /api/geo/djs-map
-    try:
-        response = session.get(f"{API_BASE}/geo/djs-map")
-        data = response.json()
-        success = response.status_code == 200 and "djs" in data
-        djs = data.get("djs", []) if success else []
-        log_test("GET /api/geo/djs-map", success, f"Found {len(djs)} DJ locations")
-    except Exception as e:
-        log_test("GET /api/geo/djs-map", False, str(e))
-
-def test_dj_registration():
-    """Test DJ registration with full profile."""
-    global dj_user_id
-    print("\n🔍 5. DJ REGISTRATION")
-    
-    try:
-        payload = {
-            "nom": "Test",
-            "prenom": "Complet",
-            "nom_de_scene": "DJ FullTest",
-            "telephone": "0612345678",
-            "ville": "Paris",
-            "code_postal": "75001",
-            "siret": "44306184100047",
-            "tarif_indicatif": "1000€",
-            "description": "Test DJ complet",
-            "types_evenements": ["Mariage", "Anniversaire"],
-            "annees_experience": 5,
-            "zone_intervention": ["Paris"],
-            "assurance_rc_numero": "RC-2024-TEST-001",
-            "assurance_rc_organisme": "AXA"
-        }
-        response = session.post(f"{API_BASE}/dj/register", json=payload)
-        success = response.status_code == 200
-        if success:
-            data = response.json()
-            dj_user_id = user_id  # DJ registration uses current user
-        log_test("POST /api/dj/register", success, f"DJ User ID: {dj_user_id}")
-    except Exception as e:
-        log_test("POST /api/dj/register", False, str(e))
-
-def test_dj_profile_management():
-    """Test DJ profile management endpoints."""
-    print("\n🔍 6. DJ PROFILE MANAGEMENT")
-    
-    # GET /api/dj/profile
-    try:
-        response = session.get(f"{API_BASE}/dj/profile")
-        data = response.json()
-        success = response.status_code == 200 and "assurance_rc_numero" in data and "assurance_rc_organisme" in data
-        log_test("GET /api/dj/profile", success, f"Assurance: {data.get('assurance_rc_organisme')}")
-    except Exception as e:
-        log_test("GET /api/dj/profile", False, str(e))
-    
-    # PUT /api/dj/profile
-    try:
-        payload = {
-            "description": "Updated description",
-            "assurance_rc_organisme": "MAIF"
-        }
-        response = session.put(f"{API_BASE}/dj/profile", json=payload)
-        success = response.status_code == 200
-        log_test("PUT /api/dj/profile", success)
-    except Exception as e:
-        log_test("PUT /api/dj/profile", False, str(e))
-    
-    # GET /api/dj/dashboard
-    try:
-        response = session.get(f"{API_BASE}/dj/dashboard")
-        data = response.json()
-        success = response.status_code == 200 and "is_locked" in data
-        is_locked = data.get("is_locked", False)
-        log_test("GET /api/dj/dashboard", success, f"is_locked: {is_locked} (expected: true for inactive subscription)")
-    except Exception as e:
-        log_test("GET /api/dj/dashboard", False, str(e))
-
-def test_image_upload():
-    """Test image upload endpoints."""
-    print("\n🔍 7. IMAGE UPLOAD")
-    
-    # POST /api/upload/image
-    try:
-        payload = {
-            "image": TEST_BASE64_IMAGE,
-            "type": "profile"
-        }
-        response = session.post(f"{API_BASE}/upload/image", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and "url" in data
-        uploaded_url = data.get("url") if success else None
-        log_test("POST /api/upload/image", success, f"URL: {uploaded_url}")
-    except Exception as e:
-        log_test("POST /api/upload/image", False, str(e))
-        uploaded_url = None
-    
-    # POST /api/upload/images (batch)
-    try:
-        payload = {
-            "images": [TEST_BASE64_IMAGE, "/api/uploads/existing.jpg"],
-            "type": "gallery"
-        }
-        response = session.post(f"{API_BASE}/upload/images", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and "urls" in data and len(data["urls"]) == 2
-        log_test("POST /api/upload/images", success, f"URLs: {len(data.get('urls', []))}")
-    except Exception as e:
-        log_test("POST /api/upload/images", False, str(e))
-    
-    # POST /api/upload/image (pass-through)
-    try:
-        payload = {
-            "image": "/api/uploads/existing.jpg"
-        }
-        response = session.post(f"{API_BASE}/upload/image", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and data.get("url") == "/api/uploads/existing.jpg"
-        log_test("POST /api/upload/image (pass-through)", success)
-    except Exception as e:
-        log_test("POST /api/upload/image (pass-through)", False, str(e))
-    
-    # GET uploaded image
-    if uploaded_url:
-        try:
-            response = session.get(f"{BACKEND_URL}{uploaded_url}")
-            success = response.status_code == 200 and "image" in response.headers.get("content-type", "")
-            log_test("GET uploaded image", success, f"Content-Type: {response.headers.get('content-type')}")
-        except Exception as e:
-            log_test("GET uploaded image", False, str(e))
-
-def test_dj_listing_public():
-    """Test DJ listing and public profile endpoints."""
-    print("\n🔍 8. DJ LISTING & PUBLIC PROFILE")
-    
-    # GET /api/djs
-    try:
-        response = session.get(f"{API_BASE}/djs")
-        data = response.json()
-        success = response.status_code == 200 and "djs" in data
-        djs = data.get("djs", [])
-        log_test("GET /api/djs", success, f"Found {len(djs)} active DJs")
-    except Exception as e:
-        log_test("GET /api/djs", False, str(e))
-    
-    # GET /api/djs?code_postal=61000
-    try:
-        response = session.get(f"{API_BASE}/djs?code_postal=61000")
-        data = response.json()
-        success = response.status_code == 200
-        djs = data.get("djs", [])
-        log_test("GET /api/djs (postal search)", success, f"Found {len(djs)} DJs in 61000")
-    except Exception as e:
-        log_test("GET /api/djs (postal search)", False, str(e))
-    
-    # Find an active DJ for public profile test
-    active_dj_id = None
-    try:
-        response = session.get(f"{API_BASE}/djs")
-        data = response.json()
-        djs = data.get("djs", [])
-        if djs:
-            active_dj_id = djs[0].get("user_id")
-    except:
-        pass
-    
-    # GET /api/djs/{user_id} (public profile)
-    if active_dj_id:
-        try:
-            response = session.get(f"{API_BASE}/djs/{active_dj_id}")
-            data = response.json()
-            success = response.status_code == 200
-            # Check privacy - should NOT contain assurance fields
-            has_assurance = "assurance_rc_numero" in data or "assurance_rc_organisme" in data
-            privacy_ok = not has_assurance
-            log_test("GET /api/djs/{user_id} (privacy check)", success and privacy_ok, 
-                    f"Assurance fields hidden: {privacy_ok}")
-        except Exception as e:
-            log_test("GET /api/djs/{user_id} (privacy check)", False, str(e))
-
-def test_contact_requests():
-    """Test contact request endpoints."""
-    print("\n🔍 9. CONTACT REQUESTS")
-    
-    # Find an active DJ for contact test
-    active_dj_id = None
-    try:
-        response = session.get(f"{API_BASE}/djs")
-        data = response.json()
-        djs = data.get("djs", [])
-        if djs:
-            active_dj_id = djs[0].get("user_id")
-    except:
-        pass
-    
-    # POST /api/contact
-    if active_dj_id:
-        try:
-            payload = {
-                "dj_user_id": active_dj_id,
-                "client_nom": "Client Test",
-                "client_email": "client@test.com",
-                "client_telephone": "0123456789",
-                "type_evenement": "Mariage",
-                "date_evenement": "2024-06-15",
-                "lieu_evenement": "Paris",
-                "message": "Test contact request"
-            }
-            response = session.post(f"{API_BASE}/contact", json=payload)
-            success = response.status_code == 200
-            log_test("POST /api/contact", success)
-        except Exception as e:
-            log_test("POST /api/contact", False, str(e))
-    
-    # GET /api/dj/contacts (requires DJ auth)
-    try:
-        response = session.get(f"{API_BASE}/dj/contacts")
-        success = response.status_code == 200
-        if success:
-            data = response.json()
-            # Response is a direct list, not wrapped in an object
-            contacts = data if isinstance(data, list) else []
-            log_test("GET /api/dj/contacts", success, f"Found {len(contacts)} contacts")
-        else:
-            log_test("GET /api/dj/contacts", success)
-    except Exception as e:
-        log_test("GET /api/dj/contacts", False, str(e))
-
-def test_reviews():
-    """Test review system endpoints."""
-    print("\n🔍 10. REVIEWS")
-    
-    # Find an active DJ for review test
-    active_dj_id = None
-    try:
-        response = session.get(f"{API_BASE}/djs")
-        data = response.json()
-        djs = data.get("djs", [])
-        if djs:
-            active_dj_id = djs[0].get("user_id")
-    except:
-        pass
-    
-    # POST /api/reviews
-    if active_dj_id:
-        try:
-            payload = {
-                "dj_user_id": active_dj_id,
-                "client_nom": "Client Test",
-                "client_email": "client@test.com",
-                "note": 5,
-                "commentaire": "Excellent DJ!",
-                "type_evenement": "Mariage"
-            }
-            response = session.post(f"{API_BASE}/reviews", json=payload)
-            success = response.status_code == 200
-            log_test("POST /api/reviews", success)
-        except Exception as e:
-            log_test("POST /api/reviews", False, str(e))
+class TestResults:
+    def __init__(self):
+        self.passed = 0
+        self.failed = 0
+        self.errors = []
+        self.critical_errors = []
         
-        # GET /api/djs/{user_id}/reviews
-        try:
-            response = session.get(f"{API_BASE}/djs/{active_dj_id}/reviews")
-            data = response.json()
-            success = response.status_code == 200
-            # Response is a direct list, not wrapped in an object
-            reviews = data if isinstance(data, list) else []
-            log_test("GET /api/djs/{user_id}/reviews", success, f"Found {len(reviews)} reviews")
-        except Exception as e:
-            log_test("GET /api/djs/{user_id}/reviews", False, str(e))
-
-def test_subscription_stripe():
-    """Test subscription and Stripe endpoints."""
-    print("\n🔍 11. SUBSCRIPTION & STRIPE")
-    
-    # GET /api/subscription/plans
-    try:
-        response = session.get(f"{API_BASE}/subscription/plans")
-        data = response.json()
-        success = response.status_code == 200 and len(data) == 2
-        plans = [plan.get("name") for plan in data]
-        log_test("GET /api/subscription/plans", success, f"Plans: {plans}")
-    except Exception as e:
-        log_test("GET /api/subscription/plans", False, str(e))
-    
-    # POST /api/subscription/create-checkout
-    try:
-        payload = {
-            "origin_url": "https://dj-directory-fr.preview.emergentagent.com",
-            "plan": "monthly"
-        }
-        response = session.post(f"{API_BASE}/subscription/create-checkout", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and "checkout_url" in data and "session_id" in data
-        checkout_url = data.get("checkout_url", "")
-        is_stripe_url = checkout_url.startswith("https://checkout.stripe.com/")
-        log_test("POST /api/subscription/create-checkout", success and is_stripe_url, 
-                f"Stripe URL: {is_stripe_url}")
-    except Exception as e:
-        log_test("POST /api/subscription/create-checkout", False, str(e))
-
-def test_boost():
-    """Test boost system endpoints."""
-    print("\n🔍 12. BOOST SYSTEM")
-    
-    # GET /api/boost/plans
-    try:
-        response = session.get(f"{API_BASE}/boost/plans")
-        data = response.json()
-        success = response.status_code == 200 and len(data) == 3
-        plans = [f"{plan.get('name')}: {plan.get('price')}€" for plan in data]
-        log_test("GET /api/boost/plans", success, f"Plans: {plans}")
-    except Exception as e:
-        log_test("GET /api/boost/plans", False, str(e))
-    
-    # GET /api/boost/status
-    try:
-        response = session.get(f"{API_BASE}/boost/status")
-        success = response.status_code == 200
-        if success:
-            data = response.json()
-            boost_active = data.get("boost_active", False)
-            log_test("GET /api/boost/status", success, f"boost_active: {boost_active}")
+    def assert_test(self, condition, test_name, error_msg="", critical=False):
+        if condition:
+            print(f"✅ {test_name}")
+            self.passed += 1
         else:
-            log_test("GET /api/boost/status", success)
-    except Exception as e:
-        log_test("GET /api/boost/status", False, str(e))
-    
-    # POST /api/boost/create-checkout
-    try:
-        payload = {
-            "origin_url": "https://dj-directory-fr.preview.emergentagent.com",
-            "plan": "1_week"
-        }
-        response = session.post(f"{API_BASE}/boost/create-checkout", json=payload)
-        data = response.json()
-        success = response.status_code == 200 and "checkout_url" in data
-        checkout_url = data.get("checkout_url", "")
-        is_stripe_url = checkout_url.startswith("https://checkout.stripe.com/")
-        log_test("POST /api/boost/create-checkout", success and is_stripe_url, 
-                f"Stripe URL: {is_stripe_url}")
-    except Exception as e:
-        log_test("POST /api/boost/create-checkout", False, str(e))
+            print(f"❌ {test_name}: {error_msg}")
+            self.failed += 1
+            self.errors.append(f"{test_name}: {error_msg}")
+            if critical:
+                self.critical_errors.append(f"{test_name}: {error_msg}")
+            
+    def summary(self):
+        total = self.passed + self.failed
+        print(f"\n{'='*80}")
+        print(f"FULL REGRESSION TEST SUMMARY: {self.passed}/{total} passed")
+        if self.critical_errors:
+            print(f"\n🚨 CRITICAL FAILURES:")
+            for error in self.critical_errors:
+                print(f"  - {error}")
+        if self.errors:
+            print(f"\nALL FAILURES:")
+            for error in self.errors:
+                print(f"  - {error}")
+        print(f"{'='*80}")
+        return self.failed == 0
 
-def test_zone_management():
-    """Test zone management endpoints."""
-    print("\n🔍 13. ZONE MANAGEMENT")
+def make_request(method, endpoint, data=None, cookies=None, headers=None):
+    """Make HTTP request with error handling"""
+    url = f"{BASE_URL}{endpoint}"
+    default_headers = {"Content-Type": "application/json"}
+    if headers:
+        default_headers.update(headers)
     
-    # GET /api/dj/zone-status
     try:
-        response = session.get(f"{API_BASE}/dj/zone-status")
-        success = response.status_code == 200
-        if success:
-            data = response.json()
-            log_test("GET /api/dj/zone-status", success, f"Zone config returned")
+        if method == "GET":
+            response = requests.get(url, cookies=cookies, headers=default_headers)
+        elif method == "POST":
+            response = requests.post(url, json=data, cookies=cookies, headers=default_headers)
+        elif method == "PUT":
+            response = requests.put(url, json=data, cookies=cookies, headers=default_headers)
         else:
-            log_test("GET /api/dj/zone-status", success)
+            raise ValueError(f"Unsupported method: {method}")
+            
+        return response
     except Exception as e:
-        log_test("GET /api/dj/zone-status", False, str(e))
-    
-    # GET /api/dj/available-departments
-    try:
-        response = session.get(f"{API_BASE}/dj/available-departments")
-        data = response.json()
-        success = response.status_code == 200 and isinstance(data, list)
-        log_test("GET /api/dj/available-departments", success, f"Found {len(data)} departments")
-    except Exception as e:
-        log_test("GET /api/dj/available-departments", False, str(e))
+        print(f"❌ Request failed: {method} {endpoint} - {str(e)}")
+        return None
 
-def test_privacy_checks():
-    """Test privacy protection for assurance fields."""
-    print("\n🔍 14. PRIVACY CHECKS")
+def test_auth_system(results):
+    """Test AUTH SYSTEM (recently rewritten)"""
+    print(f"\n🔐 TESTING AUTH SYSTEM (RECENTLY REWRITTEN)")
+    print(f"{'='*60}")
     
-    # Find an active DJ
-    active_dj_id = None
-    try:
-        response = session.get(f"{API_BASE}/djs")
+    # Test 1: Register new user
+    new_email = f"test-new-{datetime.now().strftime('%H%M%S')}@test.com"
+    register_data = {"email": new_email, "password": "test123", "name": "Test User"}
+    response = make_request("POST", "/auth/register-email", register_data)
+    
+    results.assert_test(
+        response and response.status_code == 200,
+        "POST /api/auth/register-email - Register new user",
+        f"Expected 200, got {response.status_code if response else 'No response'}",
+        critical=True
+    )
+    
+    new_user_cookies = response.cookies if response and response.status_code == 200 else None
+    
+    # Test 2: Login admin
+    login_data = {"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}
+    response = make_request("POST", "/auth/login-email", login_data)
+    
+    results.assert_test(
+        response and response.status_code == 200,
+        "POST /api/auth/login-email - Admin login",
+        f"Expected 200, got {response.status_code if response else 'No response'}",
+        critical=True
+    )
+    
+    admin_cookies = response.cookies if response and response.status_code == 200 else None
+    
+    if response and response.status_code == 200:
         data = response.json()
-        djs = data.get("djs", [])
+        results.assert_test(
+            data.get("is_admin") == True,
+            "Admin login returns is_admin=true",
+            f"Expected True, got {data.get('is_admin')}"
+        )
+        results.assert_test(
+            data.get("is_dj") == True,
+            "Admin login returns is_dj=true",
+            f"Expected True, got {data.get('is_dj')}"
+        )
+    
+    # Test 3: GET /api/auth/me with admin cookies
+    if admin_cookies:
+        response = make_request("GET", "/auth/me", cookies=admin_cookies)
+        results.assert_test(
+            response and response.status_code == 200,
+            "GET /api/auth/me - Admin auth check",
+            f"Expected 200, got {response.status_code if response else 'No response'}"
+        )
+        
+        if response and response.status_code == 200:
+            data = response.json()
+            results.assert_test(
+                data.get("is_admin") == True,
+                "GET /api/auth/me returns is_admin flag",
+                f"Expected True, got {data.get('is_admin')}"
+            )
+            results.assert_test(
+                data.get("is_dj") == True,
+                "GET /api/auth/me returns is_dj flag",
+                f"Expected True, got {data.get('is_dj')}"
+            )
+    
+    # Test 4: POST /api/auth/logout
+    if admin_cookies:
+        response = make_request("POST", "/auth/logout", cookies=admin_cookies)
+        results.assert_test(
+            response and response.status_code == 200,
+            "POST /api/auth/logout",
+            f"Expected 200, got {response.status_code if response else 'No response'}"
+        )
+    
+    # Test 5: Auth merge - try to register with existing admin email
+    merge_data = {"email": ADMIN_EMAIL, "password": "newpassword123", "name": "Admin User"}
+    response = make_request("POST", "/auth/register-email", merge_data)
+    
+    # Should not create duplicate - either 400 (already exists) or 200 (merged) or 409 (conflict)
+    results.assert_test(
+        response and response.status_code in [200, 400, 409, 422],
+        "Auth merge - No duplicate creation for existing email",
+        f"Expected 200, 400, 409, or 422, got {response.status_code if response else 'No response'}"
+    )
+    
+    return admin_cookies, new_user_cookies
+
+def test_free_trial_system(results, new_user_cookies):
+    """Test FREE TRIAL SYSTEM (NEW)"""
+    print(f"\n🆓 TESTING FREE TRIAL SYSTEM (NEW)")
+    print(f"{'='*60}")
+    
+    if not new_user_cookies:
+        results.assert_test(False, "Free trial tests", "No new user cookies available", critical=True)
+        return
+    
+    # Test 1: POST /api/dj/register - New DJ gets trial status
+    dj_data = {
+        "nom": "Trial DJ",
+        "prenom": "Test",
+        "nom_de_scene": "DJ Trial",
+        "siret": TEST_SIRET,
+        "ville": "Paris",
+        "code_postal": "75001",
+        "telephone": "0123456789",
+        "tarif_indicatif": "800-1200€",
+        "types_evenements": ["mariage", "soiree_privee"],
+        "zone_intervention": ["Paris"],
+        "description": "Trial DJ for testing"
+    }
+    
+    response = make_request("POST", "/dj/register", dj_data, cookies=new_user_cookies)
+    results.assert_test(
+        response and response.status_code == 200,
+        "POST /api/dj/register - Trial DJ registration",
+        f"Expected 200, got {response.status_code if response else 'No response'}",
+        critical=True
+    )
+    
+    if response and response.status_code == 200:
+        data = response.json()
+        profile = data.get("profile", {})
+        results.assert_test(
+            profile.get("subscription_status") == "trial",
+            "New DJ gets subscription_status='trial'",
+            f"Expected 'trial', got {profile.get('subscription_status')}"
+        )
+        results.assert_test(
+            "trial_start" in profile,
+            "New DJ gets trial_start date",
+            "trial_start field missing"
+        )
+        results.assert_test(
+            "trial_end" in profile,
+            "New DJ gets trial_end date (15 days)",
+            "trial_end field missing"
+        )
+        results.assert_test(
+            profile.get("is_active") == True,
+            "New DJ gets is_active=true",
+            f"Expected True, got {profile.get('is_active')}"
+        )
+    
+    # Test 2: GET /api/dj/dashboard - Trial DJs see trial info
+    response = make_request("GET", "/dj/dashboard", cookies=new_user_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("is_trial") == True,
+            "Trial DJ dashboard shows is_trial=true",
+            f"Expected True, got {data.get('is_trial')}"
+        )
+        results.assert_test(
+            "trial_days_remaining" in data,
+            "Trial DJ dashboard shows trial_days_remaining",
+            "trial_days_remaining field missing"
+        )
+        results.assert_test(
+            data.get("is_locked") != True,
+            "Trial DJ dashboard NOT locked",
+            f"Trial DJ should not be locked, got is_locked={data.get('is_locked')}"
+        )
+    
+    # Test 3: GET /api/djs - Trial DJs appear in search results
+    response = make_request("GET", "/djs")
+    if response and response.status_code == 200:
+        data = response.json()
+        trial_djs = [dj for dj in data.get("djs", []) if dj.get("subscription_status") == "trial"]
+        results.assert_test(
+            len(trial_djs) > 0,
+            "Trial DJs appear in search results",
+            f"Expected >0 trial DJs, found {len(trial_djs)}"
+        )
+    
+    # Test 4: GET /api/djs/{user_id} - Trial DJ profiles accessible
+    # We need to get the user_id from the dashboard or profile
+    response = make_request("GET", "/dj/profile", cookies=new_user_cookies)
+    if response and response.status_code == 200:
+        profile_data = response.json()
+        user_id = profile_data.get("user_id")
+        if user_id:
+            response = make_request("GET", f"/djs/{user_id}")
+            results.assert_test(
+                response and response.status_code == 200,
+                "Trial DJ profile accessible via GET /api/djs/{user_id}",
+                f"Expected 200, got {response.status_code if response else 'No response'}"
+            )
+
+def test_admin_panel_endpoints(results, admin_cookies):
+    """Test ADMIN PANEL ENDPOINTS (NEW)"""
+    print(f"\n👑 TESTING ADMIN PANEL ENDPOINTS (NEW)")
+    print(f"{'='*60}")
+    
+    if not admin_cookies:
+        results.assert_test(False, "Admin panel tests", "No admin cookies available", critical=True)
+        return
+    
+    # Test 1: GET /api/admin/stats
+    response = make_request("GET", "/admin/stats", cookies=admin_cookies)
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/admin/stats",
+        f"Expected 200, got {response.status_code if response else 'No response'}",
+        critical=True
+    )
+    
+    if response and response.status_code == 200:
+        data = response.json()
+        expected_fields = ["total_djs", "active_djs", "trial_djs", "expired_djs", "boosted_djs", "total_contacts", "total_users"]
+        for field in expected_fields:
+            results.assert_test(
+                field in data,
+                f"Admin stats includes {field}",
+                f"{field} field missing from stats"
+            )
+    
+    # Test 2: GET /api/admin/contact-requests
+    response = make_request("GET", "/admin/contact-requests", cookies=admin_cookies)
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/admin/contact-requests",
+        f"Expected 200, got {response.status_code if response else 'No response'}",
+        critical=True
+    )
+    
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            isinstance(data, dict) and ("requests" in data or isinstance(data, list)),
+            "Contact requests returns dict with requests or list",
+            f"Unexpected response format: {type(data)}"
+        )
+        # Check for dj_nom enrichment if contacts exist
+        contacts = data.get("requests", []) if isinstance(data, dict) else data
+        if contacts:
+            first_contact = contacts[0]
+            results.assert_test(
+                "dj_nom" in first_contact or "nom" in first_contact,
+                "Contact requests include DJ name enrichment",
+                "Missing DJ name enrichment in contact requests"
+            )
+    
+    # Test 3: GET /api/admin/djs
+    response = make_request("GET", "/admin/djs", cookies=admin_cookies)
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/admin/djs",
+        f"Expected 200, got {response.status_code if response else 'No response'}",
+        critical=True
+    )
+    
+    if response and response.status_code == 200:
+        data = response.json()
+        djs = data.get("djs", []) if isinstance(data, dict) else data
+        results.assert_test(
+            len(djs) > 0,
+            "Admin DJs list returns DJs including inactive",
+            f"Expected >0 DJs, got {len(djs)}"
+        )
+    
+    # Test 4: PUT /api/admin/djs/{user_id}/toggle-subscription
+    # Get a DJ user_id first
+    if response and response.status_code == 200:
+        djs = data.get("djs", []) if isinstance(data, dict) else data
         if djs:
-            active_dj_id = djs[0].get("user_id")
-    except:
-        pass
+            test_dj_id = djs[0].get("user_id") or djs[0].get("id")
+            if test_dj_id:
+                response = make_request("PUT", f"/admin/djs/{test_dj_id}/toggle-subscription", cookies=admin_cookies)
+                results.assert_test(
+                    response and response.status_code == 200,
+                    "PUT /api/admin/djs/{user_id}/toggle-subscription",
+                    f"Expected 200, got {response.status_code if response else 'No response'}"
+                )
     
-    # GET /api/djs/{user_id} - should NOT contain assurance fields
-    if active_dj_id:
-        try:
-            response = session.get(f"{API_BASE}/djs/{active_dj_id}")
-            data = response.json()
-            has_assurance_numero = "assurance_rc_numero" in data
-            has_assurance_organisme = "assurance_rc_organisme" in data
-            success = response.status_code == 200 and not has_assurance_numero and not has_assurance_organisme
-            log_test("Privacy: GET /api/djs/{user_id}", success, 
-                    f"Assurance fields hidden: {not (has_assurance_numero or has_assurance_organisme)}")
-        except Exception as e:
-            log_test("Privacy: GET /api/djs/{user_id}", False, str(e))
+    # Test 5: PUT /api/admin/djs/{user_id}/toggle-boost
+    if response and response.status_code == 200:
+        djs = data.get("djs", []) if isinstance(data, dict) else data
+        if djs:
+            test_dj_id = djs[0].get("user_id") or djs[0].get("id")
+            if test_dj_id:
+                response = make_request("PUT", f"/admin/djs/{test_dj_id}/toggle-boost", cookies=admin_cookies)
+                results.assert_test(
+                    response and response.status_code == 200,
+                    "PUT /api/admin/djs/{user_id}/toggle-boost",
+                    f"Expected 200, got {response.status_code if response else 'No response'}"
+                )
     
-    # GET /api/djs - list should NOT contain assurance fields
-    try:
-        response = session.get(f"{API_BASE}/djs")
+    # Test 6: Admin endpoints return 401 without auth
+    response = make_request("GET", "/admin/stats")
+    results.assert_test(
+        response and response.status_code in [401, 403],
+        "Admin endpoints return 401/403 without auth",
+        f"Expected 401/403, got {response.status_code if response else 'No response'}"
+    )
+
+def test_admin_bypass_features(results, admin_cookies):
+    """Test ADMIN BYPASS features"""
+    print(f"\n🔓 TESTING ADMIN BYPASS FEATURES")
+    print(f"{'='*60}")
+    
+    if not admin_cookies:
+        results.assert_test(False, "Admin bypass tests", "No admin cookies available", critical=True)
+        return
+    
+    # Test 1: GET /api/dj/zone-status (admin)
+    response = make_request("GET", "/dj/zone-status", cookies=admin_cookies)
+    if response and response.status_code == 200:
         data = response.json()
-        djs = data.get("djs", [])
-        has_assurance_fields = False
-        for dj in djs:
-            if "assurance_rc_numero" in dj or "assurance_rc_organisme" in dj:
-                has_assurance_fields = True
-                break
-        success = response.status_code == 200 and not has_assurance_fields
-        log_test("Privacy: GET /api/djs (list)", success, 
-                f"Assurance fields hidden in list: {not has_assurance_fields}")
-    except Exception as e:
-        log_test("Privacy: GET /api/djs (list)", False, str(e))
+        results.assert_test(
+            data.get("max_departments") == 999,
+            "Admin zone-status: max_departments=999",
+            f"Expected 999, got {data.get('max_departments')}"
+        )
+        results.assert_test(
+            data.get("extension_price") == 0,
+            "Admin zone-status: extension_price=0",
+            f"Expected 0, got {data.get('extension_price')}"
+        )
+    
+    # Test 2: POST /api/dj/zone/add-department (admin)
+    add_dept_data = {"department_code": "75"}
+    response = make_request("POST", "/dj/zone/add-department", add_dept_data, cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("admin_bypass") == True,
+            "Admin zone add-department: admin_bypass=true",
+            f"Expected True, got {data.get('admin_bypass')}"
+        )
+        results.assert_test(
+            "checkout_url" not in data,
+            "Admin zone add-department: no checkout_url",
+            "checkout_url should not be present for admin"
+        )
+    
+    # Test 3: GET /api/boost/status (admin)
+    response = make_request("GET", "/boost/status", cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("boost_active") == "Permanent",
+            "Admin boost status: boost_active='Permanent'",
+            f"Expected 'Permanent', got {data.get('boost_active')}"
+        )
+    
+    # Test 4: GET /api/dj/dashboard (admin)
+    response = make_request("GET", "/dj/dashboard", cookies=admin_cookies)
+    if response and response.status_code == 200:
+        data = response.json()
+        results.assert_test(
+            data.get("is_locked") == False,
+            "Admin dashboard: is_locked=false",
+            f"Expected False, got {data.get('is_locked')}"
+        )
+        results.assert_test(
+            data.get("is_admin") == True,
+            "Admin dashboard: is_admin=true",
+            f"Expected True, got {data.get('is_admin')}"
+        )
 
-def test_error_handling():
-    """Test error handling scenarios."""
-    print("\n🔍 15. ERROR HANDLING")
+def test_search_by_postal_code(results):
+    """Test SEARCH BY POSTAL CODE (CRITICAL FIX)"""
+    print(f"\n🔍 TESTING SEARCH BY POSTAL CODE (CRITICAL FIX)")
+    print(f"{'='*60}")
     
-    # GET /api/djs/nonexistent_user_id
-    try:
-        response = session.get(f"{API_BASE}/djs/nonexistent_user_id")
-        success = response.status_code == 404
-        log_test("GET /api/djs/nonexistent_user_id", success, f"Status: {response.status_code}")
-    except Exception as e:
-        log_test("GET /api/djs/nonexistent_user_id", False, str(e))
+    # Test specific postal codes mentioned in the review request
+    test_cases = [
+        ("61500", "DJ AS'"),
+        ("77950", "Djjoss"),
+        ("27000", "Dj GUIOX")
+    ]
     
-    # POST /api/auth/login-email (wrong credentials)
-    try:
-        payload = {
-            "email": "wrong@wrong.com",
-            "password": "wrong"
-        }
-        response = session.post(f"{API_BASE}/auth/login-email", json=payload)
-        success = response.status_code == 401
-        log_test("POST /api/auth/login-email (wrong creds)", success, f"Status: {response.status_code}")
-    except Exception as e:
-        log_test("POST /api/auth/login-email (wrong creds)", False, str(e))
-    
-    # Create a new session without auth for testing protected endpoints
-    unauth_session = requests.Session()
-    unauth_session.timeout = 10
-    
-    # POST /api/dj/register without auth
-    try:
-        payload = {"nom": "Test"}
-        response = unauth_session.post(f"{API_BASE}/dj/register", json=payload)
-        # Accept both 401 (auth error) and 422 (validation error) as valid responses
-        success = response.status_code in [401, 422]
-        log_test("POST /api/dj/register (no auth)", success, f"Status: {response.status_code}")
-    except Exception as e:
-        log_test("POST /api/dj/register (no auth)", False, str(e))
-    
-    # GET /api/dj/contacts without auth
-    try:
-        response = unauth_session.get(f"{API_BASE}/dj/contacts")
-        success = response.status_code == 401
-        log_test("GET /api/dj/contacts (no auth)", success, f"Status: {response.status_code}")
-    except Exception as e:
-        log_test("GET /api/dj/contacts (no auth)", False, str(e))
+    for postal_code, expected_dj in test_cases:
+        response = make_request("GET", f"/djs?code_postal={postal_code}")
+        results.assert_test(
+            response and response.status_code == 200,
+            f"GET /api/djs?code_postal={postal_code}",
+            f"Expected 200, got {response.status_code if response else 'No response'}",
+            critical=True
+        )
+        
+        if response and response.status_code == 200:
+            data = response.json()
+            djs = data.get("djs", [])
+            found_dj = any(expected_dj.lower() in dj.get("nom_de_scene", "").lower() for dj in djs)
+            results.assert_test(
+                found_dj,
+                f"Postal code {postal_code} finds {expected_dj}",
+                f"Expected to find {expected_dj} in results, got {len(djs)} DJs"
+            )
 
-def print_summary():
-    """Print comprehensive test summary."""
-    print("\n" + "=" * 80)
-    print("📋 COMPREHENSIVE REGRESSION TEST SUMMARY")
-    print("=" * 80)
+def test_core_endpoints(results):
+    """Test CORE ENDPOINTS (regression)"""
+    print(f"\n🏗️ TESTING CORE ENDPOINTS (REGRESSION)")
+    print(f"{'='*60}")
     
-    total_tests = len(test_results)
-    passed_tests = sum(1 for result in test_results.values() if result["success"])
-    failed_tests = total_tests - passed_tests
+    # Test 1: GET /api/health
+    response = make_request("GET", "/health")
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/health",
+        f"Expected 200, got {response.status_code if response else 'No response'}",
+        critical=True
+    )
     
-    print(f"Total Tests: {total_tests}")
-    print(f"✅ Passed: {passed_tests}")
-    print(f"❌ Failed: {failed_tests}")
-    print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+    # Test 2: GET /api/event-types
+    response = make_request("GET", "/event-types")
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/event-types",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
     
-    if failed_tests > 0:
-        print(f"\n❌ FAILED TESTS ({failed_tests}):")
-        print("-" * 40)
-        for test_name, result in test_results.items():
-            if not result["success"]:
-                print(f"• {test_name}")
-                if result["details"]:
-                    print(f"  └─ {result['details']}")
+    # Test 3: POST /api/verify-siret
+    siret_data = {"siret": "44306184100047"}
+    response = make_request("POST", "/verify-siret", siret_data)
+    results.assert_test(
+        response and response.status_code == 200,
+        "POST /api/verify-siret",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
     
-    print(f"\n✅ PASSED TESTS ({passed_tests}):")
-    print("-" * 40)
-    for test_name, result in test_results.items():
-        if result["success"]:
-            print(f"• {test_name}")
+    # Test 4: GET /api/geo/regions
+    response = make_request("GET", "/geo/regions")
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/geo/regions",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
     
-    return passed_tests == total_tests
+    # Test 5: GET /api/geo/departments
+    response = make_request("GET", "/geo/departments")
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/geo/departments",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
+    
+    # Test 6: POST /api/upload/image
+    # Create a small test image (1x1 PNG)
+    test_image_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+    image_data = {"image": f"data:image/png;base64,{test_image_b64}"}
+    response = make_request("POST", "/upload/image", image_data)
+    results.assert_test(
+        response and response.status_code == 200,
+        "POST /api/upload/image",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
+    
+    # Test 7: GET /api/djs (list all)
+    response = make_request("GET", "/djs")
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/djs (list all)",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
+    
+    # Test 8: GET /api/boost/plans
+    response = make_request("GET", "/boost/plans")
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/boost/plans",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
+    
+    # Test 9: GET /api/subscription/plans
+    response = make_request("GET", "/subscription/plans")
+    results.assert_test(
+        response and response.status_code == 200,
+        "GET /api/subscription/plans",
+        f"Expected 200, got {response.status_code if response else 'No response'}"
+    )
+
+def test_non_admin_restrictions(results, new_user_cookies):
+    """Test that non-admin users get 403 on admin-only endpoints"""
+    print(f"\n🚫 TESTING NON-ADMIN RESTRICTIONS")
+    print(f"{'='*60}")
+    
+    if not new_user_cookies:
+        results.assert_test(False, "Non-admin restriction tests", "No new user cookies available")
+        return
+    
+    admin_endpoints = [
+        "/admin/stats",
+        "/admin/contact-requests",
+        "/admin/djs"
+    ]
+    
+    for endpoint in admin_endpoints:
+        response = make_request("GET", endpoint, cookies=new_user_cookies)
+        results.assert_test(
+            response and response.status_code in [401, 403],
+            f"Non-admin gets 401/403 for {endpoint}",
+            f"Expected 401/403, got {response.status_code if response else 'No response'}"
+        )
 
 def main():
-    """Run comprehensive regression test suite."""
-    print("🚀 DJ CONNECT FRANCE - COMPREHENSIVE REGRESSION TEST")
-    print(f"Backend URL: {BACKEND_URL}")
-    print(f"Test Email: {TEST_EMAIL}")
-    print("=" * 80)
+    """Main test execution"""
+    print(f"🧪 DJ MATCH FRANCE - FULL REGRESSION TEST")
+    print(f"Backend URL: {BASE_URL}")
+    print(f"Admin Email: {ADMIN_EMAIL}")
+    print(f"{'='*80}")
     
-    # Run all test suites
-    test_health_static()
-    test_auth_email()
-    test_siret_verification()
-    test_geo_endpoints()
-    test_dj_registration()
-    test_dj_profile_management()
-    test_image_upload()
-    test_dj_listing_public()
-    test_contact_requests()
-    test_reviews()
-    test_subscription_stripe()
-    test_boost()
-    test_zone_management()
-    test_privacy_checks()
-    test_error_handling()
+    results = TestResults()
     
-    # Print summary
-    all_passed = print_summary()
+    # Test 1: AUTH SYSTEM (recently rewritten)
+    admin_cookies, new_user_cookies = test_auth_system(results)
     
-    if all_passed:
-        print("\n🎉 ALL TESTS PASSED! Backend is fully functional.")
-    else:
-        print("\n⚠️ Some tests failed. See details above.")
+    # Re-login admin for subsequent tests (logout may have cleared cookies)
+    if admin_cookies:
+        login_data = {"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}
+        response = make_request("POST", "/auth/login-email", login_data)
+        if response and response.status_code == 200:
+            admin_cookies = response.cookies
     
-    return all_passed
+    # Test 2: FREE TRIAL SYSTEM (NEW)
+    test_free_trial_system(results, new_user_cookies)
+    
+    # Test 3: ADMIN PANEL ENDPOINTS (NEW)
+    test_admin_panel_endpoints(results, admin_cookies)
+    
+    # Test 4: ADMIN BYPASS features
+    test_admin_bypass_features(results, admin_cookies)
+    
+    # Test 5: SEARCH BY POSTAL CODE (CRITICAL FIX)
+    test_search_by_postal_code(results)
+    
+    # Test 6: CORE ENDPOINTS (regression)
+    test_core_endpoints(results)
+    
+    # Test 7: Non-admin restrictions
+    test_non_admin_restrictions(results, new_user_cookies)
+    
+    # Summary
+    success = results.summary()
+    return success
 
 if __name__ == "__main__":
     success = main()
