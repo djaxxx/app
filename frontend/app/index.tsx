@@ -466,14 +466,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaGlassEmoji: {
-    fontSize: 18,
-    marginRight: 8,
+    fontSize: 22,
+    marginRight: 10,
   },
   ctaGlassText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   // Search Bar - Neon glow prominent
   searchGlassOuter: {
