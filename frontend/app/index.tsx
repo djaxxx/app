@@ -144,81 +144,50 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* Stat Badges */}
-        <View style={styles.statBadgesSection}>
-          <View style={styles.statBadge}>
-            <Text style={styles.statBadgeEmoji}>⭐</Text>
-            <Text style={styles.statBadgeText}><Text style={styles.statBadgeBold}>4.8/5</Text> sur +200 evenements</Text>
-          </View>
-          <View style={styles.statBadge}>
-            <Text style={styles.statBadgeEmoji}>🎧</Text>
-            <Text style={styles.statBadgeText}><Text style={styles.statBadgeBold}>+500 DJ</Text> partout en France</Text>
-          </View>
-          <View style={styles.statBadge}>
-            <Text style={styles.statBadgeEmoji}>✅</Text>
-            <Text style={styles.statBadgeText}><Text style={styles.statBadgeBold}>+1000</Text> clients satisfaits</Text>
-          </View>
-        </View>
-
-        {/* CTA Button */}
-        <TouchableOpacity
-          style={styles.ctaButton}
-          onPress={() => {
-            if (ctaSearchRef?.current) {
-              ctaSearchRef.current.focus();
-            }
-          }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.ctaButtonText}>🔥 Trouver mon DJ maintenant</Text>
-          <Ionicons name="chevron-forward" size={22} color="#fff" />
-        </TouchableOpacity>
-
-        {/* Search */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchBoxWrapper}>
-            <Ionicons name="location-outline" size={20} color="#8B5CF6" style={{ marginLeft: 14 }} />
-            <TextInput
-              style={styles.searchBoxInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Ou se deroule votre evenement ?"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="numeric"
-              maxLength={5}
-              returnKeyType="search"
-            />
-            <View style={styles.searchIconRight}>
-              <Ionicons name="search" size={20} color="#fff" />
-            </View>
-          </View>
-        </View>
-
         {/* Trust Badges - 3 blocs */}
         <View style={styles.trustSection}>
           <View style={styles.trustRow3}>
             <View style={styles.trustBadge3}>
               <Text style={styles.trustEmoji}>✅</Text>
-              <Text style={styles.trustBadgeTitle}>DJ verifies</Text>
-              <Text style={styles.trustBadgeSub}>SIRET + assurance</Text>
+              <Text style={styles.trustText3}>DJ verifies avec SIRET et Assurance</Text>
             </View>
             <View style={styles.trustBadge3}>
-              <Text style={styles.trustEmoji}>⭐</Text>
-              <Text style={styles.trustBadgeTitle}>Avis clients</Text>
-              <Text style={styles.trustBadgeSub}>reels</Text>
+              <Text style={styles.trustEmoji}>✨</Text>
+              <Text style={styles.trustText3}>Avis clients Reel</Text>
             </View>
             <View style={styles.trustBadge3}>
-              <Text style={styles.trustEmoji}>🔒</Text>
-              <Text style={styles.trustBadgeTitle}>Reservation</Text>
-              <Text style={styles.trustBadgeSub}>simple et securisee</Text>
+              <Text style={styles.trustEmoji}>🛡️</Text>
+              <Text style={styles.trustText3}>Reservation simple</Text>
             </View>
           </View>
         </View>
 
-        {/* Tagline */}
-        <View style={styles.taglineSection}>
-          <Text style={styles.taglineMain}>Fini les mauvaises surprises.</Text>
-          <Text style={styles.taglineSub}>Que des DJ fiables.</Text>
+        {/* Search - PROMINENT */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchLabel}>
+            <Ionicons name="location" size={20} color="#8B5CF6" />
+            <Text style={styles.searchLabelText}>Trouvez votre DJ</Text>
+          </View>
+          <View style={styles.searchBoxWrapper}>
+            <View style={styles.searchIconCircle}>
+              <Ionicons name="search" size={22} color="#fff" />
+            </View>
+            <TextInput
+              style={styles.searchBoxInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Indiquez le code postal de votre evenement"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="numeric"
+              maxLength={5}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClearBtn}>
+                <Ionicons name="close-circle" size={22} color="#888" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Map CTA Button */}
@@ -395,79 +364,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginBottom: 6,
   },
-  trustBadgeTitle: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  trustBadgeSub: {
-    color: '#999',
+  trustText3: {
+    color: '#ddd',
     fontSize: 11,
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 2,
-  },
-  statBadgesSection: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    gap: 8,
-  },
-  statBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.06)',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
-    gap: 12,
-  },
-  statBadgeEmoji: {
-    fontSize: 22,
-  },
-  statBadgeText: {
-    color: '#ccc',
-    fontSize: 15,
-  },
-  statBadgeBold: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    marginBottom: 16,
-    paddingVertical: 18,
-    borderRadius: 30,
-    backgroundColor: '#8B5CF6',
-    borderWidth: 2,
-    borderColor: '#A78BFA',
-    gap: 8,
-  },
-  ctaButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  taglineSection: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-  },
-  taglineMain: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  taglineSub: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
-    textAlign: 'center',
+    lineHeight: 15,
   },
   headerLeft: {
     flexDirection: 'row',
