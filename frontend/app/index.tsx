@@ -495,9 +495,9 @@ const styles = StyleSheet.create({
   },
   ctaGlassText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '900',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
