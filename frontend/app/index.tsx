@@ -418,8 +418,8 @@ const styles = StyleSheet.create({
   },
   searchLabelText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
   },
   searchBoxWrapper: {
     flexDirection: 'row',
