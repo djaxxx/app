@@ -165,21 +165,13 @@ export default function HomeScreen() {
 
         {/* Search - GLASSMORPHISM DESIGN */}
         <View style={styles.searchSection}>
-          {/* CTA Button - Glassmorphism */}
-          <TouchableOpacity activeOpacity={0.85} style={styles.ctaGlassOuter}>
-            <LinearGradient
-              colors={['#5B21B6', '#7C3AED', '#6D28D9']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGlassGradient}
-            >
-              <View style={styles.ctaGlassInner}>
-                <Text style={styles.ctaGlassEmoji}>🔥</Text>
-                <Text style={styles.ctaGlassText}>Trouver mon DJ maintenant</Text>
-                <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.8)" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+          {/* CTA Button - Neon border, neutral interior */}
+          <View style={styles.ctaGlassOuter}>
+            <View style={styles.ctaGlassInner}>
+              <Text style={styles.ctaGlassEmoji}>🔥</Text>
+              <Text style={styles.ctaGlassText} numberOfLines={1} adjustsFontSizeToFit>Trouver mon DJ maintenant</Text>
+            </View>
+          </View>
 
           {/* Search Bar - Glassmorphism */}
           <View style={styles.searchGlassOuter}>
@@ -189,7 +181,7 @@ export default function HomeScreen() {
                 style={styles.searchGlassInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Où se déroule votre événement ?"
+                placeholder="Code postal de votre événement"
                 placeholderTextColor="rgba(255,255,255,0.45)"
                 keyboardType="numeric"
                 maxLength={5}
@@ -438,15 +430,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
   },
-  // CTA Button - Glassmorphism
+  // CTA Button - Neon border, neutral interior
   ctaGlassOuter: {
     borderRadius: 30,
-    borderWidth: 1.5,
-    borderColor: 'rgba(167, 139, 250, 0.55)',
-    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#A78BFA',
+    backgroundColor: 'rgba(15, 15, 40, 0.85)',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     ...Platform.select({
       web: {
-        boxShadow: '0 0 24px rgba(139, 92, 246, 0.45), 0 0 60px rgba(139, 92, 246, 0.18), inset 0 1px 0 rgba(255,255,255,0.2)',
+        boxShadow: '0 0 12px rgba(167, 139, 250, 0.6), 0 0 30px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.12), inset 0 0 12px rgba(139, 92, 246, 0.08)',
       },
       default: {},
     }),
@@ -462,15 +456,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaGlassEmoji: {
-    fontSize: 26,
-    marginRight: 12,
+    fontSize: 22,
+    marginRight: 8,
   },
   ctaGlassText: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
-    letterSpacing: 0.5,
-    flex: 1,
+    letterSpacing: 0.3,
   },
   // Search Bar - Glassmorphism
   searchGlassOuter: {
