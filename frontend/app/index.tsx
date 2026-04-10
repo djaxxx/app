@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 4,
+    paddingTop: 0,
   },
   topBarSpacer: {
     flex: 1,
