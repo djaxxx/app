@@ -39,7 +39,9 @@ async def get_djs_for_map(
     region_code: Optional[str] = None,
     department_code: Optional[str] = None,
     type_evenement: Optional[str] = None,
-    verifie_uniquement: bool = False
+    verifie_uniquement: bool = False,
+    page: int = 1,
+    limit: int = 50
 ):
     """Get DJ locations for map display (only active and subscribed DJs)"""
     query = {"is_active": True, "subscription_status": {"$in": ["active", "trial"]}}
@@ -53,10 +55,12 @@ async def get_djs_for_map(
         query["badge_verifie"] = True
     query["latitude"] = {"$ne": None}
     query["longitude"] = {"$ne": None}
+    skip = (page - 1) * limit
+    total = await db.dj_profiles.count_documents(query)
     djs = await db.dj_profiles.find(query, {
         "_id": 0, "user_id": 1, "nom_de_scene": 1, "ville": 1,
         "department_name": 1, "region_name": 1, "latitude": 1, "longitude": 1,
         "photo_profil": 1, "note_moyenne": 1, "badge_verifie": 1,
-        "tarif_indicatif": 1, "types_evenements": 1
-    }).to_list(500)
-    return {"total": len(djs), "djs": djs}
+        "types_evenements": 1
+    }).skip(skip).to_list(limit)
+    return {"total": total, "djs": djs, "page": page, "limit": limit}

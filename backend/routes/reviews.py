@@ -25,12 +25,14 @@ async def create_review(review_data: ReviewCreate):
 
 
 @router.get("/djs/{user_id}/reviews")
-async def get_dj_reviews(user_id: str):
+async def get_dj_reviews(user_id: str, page: int = 1, limit: int = 50):
     """Get approved reviews for a DJ (public)"""
+    skip = (page - 1) * limit
+    total = await db.reviews.count_documents({"dj_user_id": user_id, "status": "approved"})
     reviews = await db.reviews.find(
         {"dj_user_id": user_id, "status": "approved"}, {"_id": 0}
-    ).sort("created_at", -1).to_list(50)
-    return reviews
+    ).sort("created_at", -1).skip(skip).to_list(limit)
+    return {"reviews": reviews, "total": total, "page": page, "limit": limit}
 
 
 @router.get("/dj/reviews/pending")

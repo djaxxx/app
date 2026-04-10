@@ -29,14 +29,16 @@ async def create_contact_request(contact: ContactRequest):
 
 
 @router.get("/dj/contacts")
-async def get_dj_contacts(request: Request, status: Optional[str] = None):
+async def get_dj_contacts(request: Request, status: Optional[str] = None, page: int = 1, limit: int = 50):
     """Get contact requests for the DJ"""
     user_data = await require_dj(request)
     query = {"dj_user_id": user_data["user_id"]}
     if status:
         query["status"] = status
-    contacts = await db.contact_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
-    return contacts
+    skip = (page - 1) * limit
+    total = await db.contact_requests.count_documents(query)
+    contacts = await db.contact_requests.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).to_list(limit)
+    return {"contacts": contacts, "total": total, "page": page, "limit": limit}
 
 
 @router.put("/dj/contacts/{request_id}/read")

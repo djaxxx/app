@@ -11,11 +11,13 @@ router = APIRouter()
 
 
 @router.get("/admin/djs")
-async def admin_list_djs(request: Request):
+async def admin_list_djs(request: Request, page: int = 1, limit: int = 50):
     """Admin: List ALL DJs (including inactive/unpaid)"""
     await require_admin(request)
-    djs = await db.dj_profiles.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    return {"djs": djs, "total": len(djs)}
+    skip = (page - 1) * limit
+    total = await db.dj_profiles.count_documents({})
+    djs = await db.dj_profiles.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).to_list(limit)
+    return {"djs": djs, "total": total, "page": page, "limit": limit, "pages": (total + limit - 1) // limit}
 
 
 @router.get("/admin/stats")
@@ -38,15 +40,23 @@ async def admin_stats(request: Request):
 
 
 @router.get("/admin/contact-requests")
-async def admin_contact_requests(request: Request):
+async def admin_contact_requests(request: Request, page: int = 1, limit: int = 50):
     """Admin: List all contact requests from clients to DJs"""
     await require_admin(request)
-    requests_list = await db.contact_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
-    # Enrich with DJ names
+    skip = (page - 1) * limit
+    total = await db.contact_requests.count_documents({})
+    requests_list = await db.contact_requests.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).to_list(limit)
+    # Batch fetch DJ names with $in instead of loop
+    dj_user_ids = list({req.get("dj_user_id") for req in requests_list if req.get("dj_user_id")})
+    dj_names = {}
+    if dj_user_ids:
+        djs = await db.dj_profiles.find(
+            {"user_id": {"$in": dj_user_ids}}, {"user_id": 1, "nom_de_scene": 1, "_id": 0}
+        ).to_list(len(dj_user_ids))
+        dj_names = {dj["user_id"]: dj.get("nom_de_scene", "Inconnu") for dj in djs}
     for req in requests_list:
-        dj = await db.dj_profiles.find_one({"user_id": req.get("dj_user_id")}, {"nom_de_scene": 1, "_id": 0})
-        req["dj_nom"] = dj.get("nom_de_scene", "Inconnu") if dj else "Inconnu"
-    return {"requests": requests_list, "total": len(requests_list)}
+        req["dj_nom"] = dj_names.get(req.get("dj_user_id"), "Inconnu")
+    return {"requests": requests_list, "total": total, "page": page, "limit": limit}
 
 
 @router.post("/admin/create-dj")

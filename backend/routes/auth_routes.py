@@ -33,11 +33,15 @@ async def find_or_merge_user(email: str) -> dict:
         return None
     if len(users) == 1:
         return users[0]
-    # Multiple accounts for same email - merge into the one that has a DJ profile
+    # Multiple accounts for same email - batch fetch DJ profiles with $in
+    user_ids = [u["user_id"] for u in users]
+    dj_profiles = await db.dj_profiles.find(
+        {"user_id": {"$in": user_ids}}, {"user_id": 1, "_id": 0}
+    ).to_list(len(user_ids))
+    dj_user_ids = {dj["user_id"] for dj in dj_profiles}
     primary = None
     for u in users:
-        dj = await db.dj_profiles.find_one({"user_id": u["user_id"]})
-        if dj:
+        if u["user_id"] in dj_user_ids:
             primary = u
             break
     if not primary:
