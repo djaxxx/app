@@ -133,10 +133,6 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.heroSection}>
-          <View style={styles.heroAnnuaire}>
-            <Text style={styles.heroAnnuaireText}>L'annuaire des DJ professionnels</Text>
-            <Text style={styles.heroAnnuaireText}>en France 🔵 ⚪ 🔴</Text>
-          </View>
           <Text style={styles.heroTitle}>
             Trouvez votre DJ PRO{'\n'}
             <Text style={styles.heroHighlight}>en 2 minutes chrono⏱️</Text>
