@@ -126,7 +126,7 @@ export default function HomeScreen() {
 
         <View style={styles.logoContainer}>
           <Image
-            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/wnoogn3e_dj_match_transparent.png' }}
+            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/9evqx9x4_dj_match_4k_pro.png' }}
             style={styles.logoImage}
             resizeMode="contain"
           />
