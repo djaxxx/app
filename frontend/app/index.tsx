@@ -136,34 +136,28 @@ export default function HomeScreen() {
             L'annuaire des DJ professionnels en France
           </Text>
           <Text style={styles.heroTitle}>
-            Trouvez le DJ parfait{'\n'}
-            <Text style={styles.heroHighlight}>pour votre evenement</Text>
+            Trouvez votre DJ PRO{'\n'}
+            <Text style={styles.heroHighlight}>en 2 minutes chrono !</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
             L'appli des DJ declares, assures, experimentes. Ici, la qualite est garantie 🎧
           </Text>
         </View>
 
-        {/* Trust Badges */}
+        {/* Trust Badges - 3 blocs */}
         <View style={styles.trustSection}>
-          <View style={styles.trustRow}>
-            <View style={styles.trustBadge}>
-              <Text style={styles.trustEmoji}>⭐</Text>
-              <Text style={styles.trustText}>Note moyenne{'\n'}5/5</Text>
-            </View>
-            <View style={styles.trustBadge}>
+          <View style={styles.trustRow3}>
+            <View style={styles.trustBadge3}>
               <Text style={styles.trustEmoji}>✅</Text>
-              <Text style={styles.trustText}>DJ Pro Vérifiés{'\n'}SIRET / ASSURANCE</Text>
+              <Text style={styles.trustText3}>DJ verifies avec SIRET et Assurance</Text>
             </View>
-          </View>
-          <View style={styles.trustRow}>
-            <View style={styles.trustBadge}>
-              <Text style={styles.trustEmoji}>🎉</Text>
-              <Text style={styles.trustText}>Annuaire Gratuit{'\n'}pour client</Text>
+            <View style={styles.trustBadge3}>
+              <Text style={styles.trustEmoji}>✨</Text>
+              <Text style={styles.trustText3}>Avis clients Reel</Text>
             </View>
-            <View style={styles.trustBadge}>
-              <Text style={styles.trustEmoji}>🔒</Text>
-              <Text style={styles.trustText}>Paiement{'\n'}sécurisé</Text>
+            <View style={styles.trustBadge3}>
+              <Text style={styles.trustEmoji}>🛡️</Text>
+              <Text style={styles.trustText3}>Reservation simple</Text>
             </View>
           </View>
         </View>
@@ -352,33 +346,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
-  trustRow: {
+  trustRow3: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    gap: 8,
   },
-  trustBadge: {
+  trustBadge3: {
     flex: 1,
-    flexDirection: 'row',
+    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+    borderRadius: 14,
+    padding: 14,
     alignItems: 'center',
-    backgroundColor: '#12123A',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: '#1E1E4A',
+    borderColor: 'rgba(139, 92, 246, 0.15)',
   },
   trustEmoji: {
-    fontSize: 22,
-    marginRight: 8,
+    fontSize: 24,
+    marginBottom: 6,
   },
-  trustText: {
-    color: '#ccc',
-    fontSize: 12,
+  trustText3: {
+    color: '#ddd',
+    fontSize: 11,
     fontWeight: '600',
-    lineHeight: 16,
-    flex: 1,
+    textAlign: 'center',
+    lineHeight: 15,
   },
   headerLeft: {
     flexDirection: 'row',
