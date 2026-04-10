@@ -455,16 +455,16 @@ const styles = StyleSheet.create({
   },
   // CTA Button - Neon border, neutral interior
   ctaGlassOuter: {
-    borderRadius: 30,
-    borderWidth: 2,
+    borderRadius: 26,
+    borderWidth: 1.5,
     borderColor: '#A78BFA',
     backgroundColor: 'rgba(15, 15, 40, 0.85)',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     overflow: 'hidden',
     ...Platform.select({
       web: {
-        boxShadow: '0 0 14px rgba(167, 139, 250, 0.6), 0 0 35px rgba(139, 92, 246, 0.3), 0 0 70px rgba(139, 92, 246, 0.12), inset 0 0 14px rgba(139, 92, 246, 0.08)',
+        boxShadow: '0 0 10px rgba(167, 139, 250, 0.4), 0 0 25px rgba(139, 92, 246, 0.15)',
       },
       default: {},
     }),
@@ -488,17 +488,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaGlassEmoji: {
-    fontSize: 26,
-    marginRight: 10,
+    fontSize: 18,
+    marginRight: 8,
   },
   ctaGlassText: {
     color: '#fff',
-    fontSize: 17,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   // Search Bar - Neon glow prominent
   searchGlassOuter: {
