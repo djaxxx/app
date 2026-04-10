@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
   },
   mapCTAButton: {
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 4,
     backgroundColor: '#8B5CF6',
     borderRadius: 16,
     overflow: 'hidden',
