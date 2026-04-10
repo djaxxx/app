@@ -140,8 +140,7 @@ export default function HomeScreen() {
             <Text style={styles.heroHighlight}>pour votre evenement</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
-            Une plateforme dediee aux DJ declares, assures et experimentes.{'\n'}
-            Un gage de qualite pour des prestations a la hauteur de vos attentes.
+            L'appli des DJ declares, assures, experimentes.{'\n'}Ici, la qualite est garantie. 🎧
           </Text>
         </View>
 
