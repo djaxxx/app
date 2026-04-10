@@ -310,12 +310,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 0,
     paddingBottom: 0,
-    marginBottom: -16,
+    marginBottom: -30,
   },
   heroSection: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 4,
   },
   heroAnnuaire: {
     alignItems: 'center',
