@@ -255,7 +255,6 @@ export default function MapScreen() {
             '<div class="dj-popup">' +
             '<h3>' + dj.nom_de_scene + '</h3>' +
             '<p>' + dj.ville + '</p>' +
-            (dj.tarif_indicatif ? '<p>' + dj.tarif_indicatif + '</p>' : '') +
             '<p>' + verifiedBadge + ' ' + rating + '</p>' +
             '</div>'
           );
@@ -482,12 +481,6 @@ export default function MapScreen() {
                   </View>
                 )}
                 
-                {selectedDJ.tarif_indicatif && (
-                  <View style={styles.djModalInfo}>
-                    <Ionicons name="pricetag" size={16} color="#10B981" />
-                    <Text style={styles.djModalInfoText}>{selectedDJ.tarif_indicatif}</Text>
-                  </View>
-                )}
                 
                 <TouchableOpacity
                   style={styles.djModalButton}

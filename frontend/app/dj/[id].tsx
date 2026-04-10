@@ -192,13 +192,7 @@ export default function DJProfileScreen() {
             </View>
           </View>
 
-          {/* Pricing */}
-          {dj.tarif_indicatif && (
-            <View style={styles.pricingSection}>
-              <Ionicons name="pricetag" size={20} color="#10B981" />
-              <Text style={styles.pricingText}>{dj.tarif_indicatif}</Text>
-            </View>
-          )}
+          {/* Pricing hidden from clients */}
 
           {/* CTA Buttons */}
           <View style={styles.ctaSection}>
