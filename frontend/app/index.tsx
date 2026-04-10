@@ -132,12 +132,16 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.heroSection}>
+          <Text style={styles.heroAnnuaire}>
+            L'annuaire des DJ professionnels en France
+          </Text>
           <Text style={styles.heroTitle}>
             Trouvez le DJ parfait{'\n'}
-            <Text style={styles.heroHighlight}>pour votre événement</Text>
+            <Text style={styles.heroHighlight}>pour votre evenement</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
-            DJs professionnels vérifiés pour mariages, anniversaires, soirées privées et entreprises
+            Une plateforme dediee aux DJ declares, assures et experimentes.{'\n'}
+            Un gage de qualite pour des prestations a la hauteur de vos attentes.
           </Text>
         </View>
 
@@ -313,6 +317,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
+  heroAnnuaire: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#8B5CF6',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 12,
+    textAlign: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
   heroTitle: {
     fontSize: 26,
     fontWeight: 'bold',
@@ -325,10 +343,11 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 14,
-    color: '#888',
+    color: '#aaa',
     textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
+    marginTop: 10,
+    lineHeight: 22,
+    paddingHorizontal: 10,
   },
   trustSection: {
     paddingHorizontal: 16,
