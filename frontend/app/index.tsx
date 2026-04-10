@@ -160,14 +160,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search - SPOTLIGHT DESIGN */}
+        {/* Search section */}
         <View style={styles.searchSection}>
-          {/* Spotlight background glow */}
-          <LinearGradient
-            colors={['rgba(139, 92, 246, 0.15)', 'rgba(139, 92, 246, 0.03)', 'transparent']}
-            style={styles.searchSpotlight}
-          />
-          
           {/* CTA Button - Neon border, neutral interior */}
           <View style={styles.ctaGlassOuter}>
             <View style={styles.ctaGlassInner}>
@@ -442,16 +436,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 20,
     gap: 14,
-    paddingVertical: 16,
-    position: 'relative',
-  },
-  searchSpotlight: {
-    position: 'absolute',
-    top: -20,
-    left: 0,
-    right: 0,
-    height: 180,
-    borderRadius: 40,
+    paddingVertical: 12,
+    overflow: 'hidden',
   },
   // CTA Button - Clean, no border
   ctaGlassOuter: {
@@ -492,15 +478,9 @@ const styles = StyleSheet.create({
   // Search Bar - Neon glow prominent
   searchGlassOuter: {
     borderRadius: 30,
-    borderWidth: 2,
-    borderColor: 'rgba(196, 181, 253, 0.45)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(167, 139, 250, 0.35)',
     overflow: 'hidden',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 0 16px rgba(139, 92, 246, 0.35), 0 0 40px rgba(139, 92, 246, 0.12), inset 0 0 20px rgba(139, 92, 246, 0.06)',
-      },
-      default: {},
-    }),
   },
   searchGlassInner: {
     flexDirection: 'row',
