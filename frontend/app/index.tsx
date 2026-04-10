@@ -168,18 +168,13 @@ export default function HomeScreen() {
             style={styles.searchSpotlight}
           />
           
-          {/* CTA Button - Vibrant gradient */}
-          <TouchableOpacity activeOpacity={0.85} style={styles.ctaGlassOuter}>
-            <LinearGradient
-              colors={['#7C3AED', '#8B5CF6', '#6D28D9']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGradientFill}
-            >
+          {/* CTA Button - Neon border, neutral interior */}
+          <View style={styles.ctaGlassOuter}>
+            <View style={styles.ctaGlassInner}>
               <Text style={styles.ctaGlassEmoji}>🔥</Text>
               <Text style={styles.ctaGlassText} numberOfLines={1} adjustsFontSizeToFit>Trouver mon DJ maintenant</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Search Bar - Neon glow prominent */}
           <View style={styles.searchGlassOuter}>
@@ -458,15 +453,18 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 40,
   },
-  // CTA Button - Vibrant gradient fill
+  // CTA Button - Neon border, neutral interior
   ctaGlassOuter: {
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: 'rgba(196, 181, 253, 0.6)',
+    borderColor: '#A78BFA',
+    backgroundColor: 'rgba(15, 15, 40, 0.85)',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
     overflow: 'hidden',
     ...Platform.select({
       web: {
-        boxShadow: '0 0 20px rgba(139, 92, 246, 0.5), 0 0 50px rgba(139, 92, 246, 0.2), 0 0 80px rgba(139, 92, 246, 0.1)',
+        boxShadow: '0 0 14px rgba(167, 139, 250, 0.6), 0 0 35px rgba(139, 92, 246, 0.3), 0 0 70px rgba(139, 92, 246, 0.12), inset 0 0 14px rgba(139, 92, 246, 0.08)',
       },
       default: {},
     }),
