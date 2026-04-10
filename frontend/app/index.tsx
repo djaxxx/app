@@ -126,7 +126,7 @@ export default function HomeScreen() {
 
         <View style={styles.logoContainer}>
           <Image
-            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/3rs1w5vv_Logo%20vibrant%20de%20DJ%20Match.png' }}
+            source={{ uri: 'https://customer-assets.emergentagent.com/job_dj-directory-fr/artifacts/0dzpqs0c_Logo%20DJ%20MATCH%20avec%20luminosit%C3%A9%20n%C3%A9on.png' }}
             style={styles.logoImage}
             resizeMode="contain"
           />
