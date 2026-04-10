@@ -160,38 +160,54 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search - GLASSMORPHISM DESIGN */}
+        {/* Search - SPOTLIGHT DESIGN */}
         <View style={styles.searchSection}>
-          {/* CTA Button - Neon border, neutral interior */}
-          <View style={styles.ctaGlassOuter}>
-            <View style={styles.ctaGlassInner}>
+          {/* Spotlight background glow */}
+          <LinearGradient
+            colors={['rgba(139, 92, 246, 0.15)', 'rgba(139, 92, 246, 0.03)', 'transparent']}
+            style={styles.searchSpotlight}
+          />
+          
+          {/* CTA Button - Vibrant gradient */}
+          <TouchableOpacity activeOpacity={0.85} style={styles.ctaGlassOuter}>
+            <LinearGradient
+              colors={['#7C3AED', '#8B5CF6', '#6D28D9']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaGradientFill}
+            >
               <Text style={styles.ctaGlassEmoji}>🔥</Text>
               <Text style={styles.ctaGlassText} numberOfLines={1} adjustsFontSizeToFit>Trouver mon DJ maintenant</Text>
-            </View>
-          </View>
+            </LinearGradient>
+          </TouchableOpacity>
 
-          {/* Search Bar - Glassmorphism */}
+          {/* Search Bar - Neon glow prominent */}
           <View style={styles.searchGlassOuter}>
-            <View style={styles.searchGlassInner}>
-              <Ionicons name="location-sharp" size={20} color="#A78BFA" style={styles.searchGlassIcon} />
+            <LinearGradient
+              colors={['rgba(139, 92, 246, 0.18)', 'rgba(91, 33, 182, 0.12)']}
+              style={styles.searchGlassInner}
+            >
+              <Ionicons name="location-sharp" size={24} color="#C4B5FD" style={styles.searchGlassIcon} />
               <TextInput
                 style={styles.searchGlassInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Code postal de votre événement"
-                placeholderTextColor="rgba(255,255,255,0.45)"
+                placeholder="Entrez le code postal"
+                placeholderTextColor="rgba(255,255,255,0.55)"
                 keyboardType="numeric"
                 maxLength={5}
                 returnKeyType="search"
               />
               {searchQuery.length > 0 ? (
                 <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchGlassClearBtn}>
-                  <Ionicons name="close-circle" size={22} color="#888" />
+                  <Ionicons name="close-circle" size={24} color="#888" />
                 </TouchableOpacity>
               ) : (
-                <Ionicons name="search" size={20} color="#A78BFA" style={styles.searchGlassSearchIcon} />
+                <View style={styles.searchGlassSearchBtn}>
+                  <Ionicons name="search" size={20} color="#fff" />
+                </View>
               )}
-            </View>
+            </LinearGradient>
           </View>
         </View>
 
@@ -428,24 +444,40 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   searchSection: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    gap: 12,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    gap: 14,
+    paddingVertical: 16,
+    position: 'relative',
   },
-  // CTA Button - Neon border, neutral interior
+  searchSpotlight: {
+    position: 'absolute',
+    top: -20,
+    left: 0,
+    right: 0,
+    height: 180,
+    borderRadius: 40,
+  },
+  // CTA Button - Vibrant gradient fill
   ctaGlassOuter: {
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: '#A78BFA',
-    backgroundColor: 'rgba(15, 15, 40, 0.85)',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
+    borderColor: 'rgba(196, 181, 253, 0.6)',
+    overflow: 'hidden',
     ...Platform.select({
       web: {
-        boxShadow: '0 0 12px rgba(167, 139, 250, 0.6), 0 0 30px rgba(139, 92, 246, 0.3), 0 0 60px rgba(139, 92, 246, 0.12), inset 0 0 12px rgba(139, 92, 246, 0.08)',
+        boxShadow: '0 0 20px rgba(139, 92, 246, 0.5), 0 0 50px rgba(139, 92, 246, 0.2), 0 0 80px rgba(139, 92, 246, 0.1)',
       },
       default: {},
     }),
+  },
+  ctaGradientFill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 28,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
   },
   ctaGlassGradient: {
     borderRadius: 28,
@@ -458,24 +490,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaGlassEmoji: {
-    fontSize: 22,
-    marginRight: 8,
+    fontSize: 26,
+    marginRight: 10,
   },
   ctaGlassText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  // Search Bar - Glassmorphism
+  // Search Bar - Neon glow prominent
   searchGlassOuter: {
     borderRadius: 30,
-    borderWidth: 1.5,
-    borderColor: 'rgba(167, 139, 250, 0.35)',
+    borderWidth: 2,
+    borderColor: 'rgba(196, 181, 253, 0.45)',
     overflow: 'hidden',
     ...Platform.select({
       web: {
-        boxShadow: '0 0 18px rgba(139, 92, 246, 0.22), 0 0 40px rgba(139, 92, 246, 0.08)',
+        boxShadow: '0 0 16px rgba(139, 92, 246, 0.35), 0 0 40px rgba(139, 92, 246, 0.12), inset 0 0 20px rgba(139, 92, 246, 0.06)',
       },
       default: {},
     }),
@@ -483,10 +518,9 @@ const styles = StyleSheet.create({
   searchGlassInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(91, 33, 182, 0.22)',
     borderRadius: 28,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
   },
   searchGlassIcon: {
     marginRight: 12,
@@ -494,9 +528,18 @@ const styles = StyleSheet.create({
   searchGlassInput: {
     flex: 1,
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 17,
+    fontWeight: '600',
     paddingVertical: 0,
+  },
+  searchGlassSearchBtn: {
+    backgroundColor: '#7C3AED',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
   },
   searchGlassSearchIcon: {
     marginLeft: 12,
