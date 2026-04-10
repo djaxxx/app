@@ -70,9 +70,6 @@ export function DJCard({ dj, onPress }: DJCardProps) {
           </Text>
         </View>
         
-        {dj.tarif_indicatif && (
-          <Text style={styles.price}>{dj.tarif_indicatif}</Text>
-        )}
         
         {dj.types_evenements && dj.types_evenements.length > 0 && (
           <View style={styles.tags}>
