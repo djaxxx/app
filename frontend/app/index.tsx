@@ -312,7 +312,9 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 0,
+    marginBottom: -8,
   },
   heroSection: {
     alignItems: 'center',
