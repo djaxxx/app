@@ -181,7 +181,7 @@ export default function HomeScreen() {
                 style={styles.searchGlassInput}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Entrez le code postal"
+                placeholder="Entre le code postal de votre Evènement"
                 placeholderTextColor="rgba(255,255,255,0.55)"
                 keyboardType="numeric"
                 maxLength={5}
