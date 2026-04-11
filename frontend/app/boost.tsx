@@ -108,9 +108,14 @@ export default function BoostScreen() {
           <View style={styles.activeBoost}>
             <Ionicons name="star" size={28} color="#FFD700" />
             <View style={styles.activeBoostInfo}>
-              <Text style={styles.activeBoostTitle}>Boost actif !</Text>
+              <Text style={styles.activeBoostTitle}>
+                {boostStatus.is_admin ? 'Boost permanent gratuit ✨' : 'Boost actif !'}
+              </Text>
               <Text style={styles.activeBoostText}>
-                {boostStatus.days_remaining} jour{boostStatus.days_remaining > 1 ? 's' : ''} restant{boostStatus.days_remaining > 1 ? 's' : ''}
+                {boostStatus.is_admin 
+                  ? 'Votre profil est boosté en permanence (compte administrateur)'
+                  : `${boostStatus.days_remaining} jour${boostStatus.days_remaining > 1 ? 's' : ''} restant${boostStatus.days_remaining > 1 ? 's' : ''}`
+                }
               </Text>
             </View>
           </View>
@@ -146,8 +151,10 @@ export default function BoostScreen() {
           </View>
         </View>
 
-        {/* Plans */}
-        <Text style={styles.plansTitle}>Choisissez votre boost</Text>
+        {/* Plans - hidden for admin */}
+        {!boostStatus?.is_admin && (
+          <>
+            <Text style={styles.plansTitle}>Choisissez votre boost</Text>
 
         {plans.map((plan) => {
           const isBest = plan.id === '1_month';
@@ -192,6 +199,8 @@ export default function BoostScreen() {
             </TouchableOpacity>
           );
         })}
+          </>
+        )}
 
         <View style={styles.footer} />
       </ScrollView>

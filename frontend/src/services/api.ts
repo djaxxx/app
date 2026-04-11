@@ -195,7 +195,8 @@ class ApiService {
 
   async getDJContacts(status?: string): Promise<ContactRequest[]> {
     const params = status ? `?status=${status}` : '';
-    return this.request<ContactRequest[]>(`/api/dj/contacts${params}`);
+    const data = await this.request<{contacts: ContactRequest[], total: number}>(`/api/dj/contacts${params}`);
+    return data.contacts || data as any;
   }
 
   async markContactRead(requestId: string) {
@@ -270,7 +271,8 @@ class ApiService {
   }
 
   async getDJReviews(userId: string): Promise<Review[]> {
-    return this.request<Review[]>(`/api/djs/${userId}/reviews`);
+    const data = await this.request<{reviews: Review[], total: number}>(`/api/djs/${userId}/reviews`);
+    return data.reviews || data as any;
   }
 
   // Subscription

@@ -66,6 +66,9 @@ export default function ZoneManagementScreen() {
           const { Linking } = require('react-native');
           Linking.openURL(result.checkout_url);
         }
+      } else {
+        // Admin bypass or free zone - reload data
+        await loadData();
       }
     } catch (error: any) {
       const msg = error.message || 'Erreur';
