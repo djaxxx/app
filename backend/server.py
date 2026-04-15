@@ -48,11 +48,11 @@ api_router.include_router(admin_contacts_router)
 # Include the combined router
 app.include_router(api_router)
 
-# CORS middleware
+# CORS middleware - echo back requesting origin for credential support
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origin_regex=".*",
+    allow_origin_regex=r".*",
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -8,9 +8,9 @@ from auth import require_dj
 router = APIRouter()
 
 BOOST_PLANS = {
-    "1_week": {"amount": 18.00, "days": 7, "label": "1 semaine", "description": "18\u20ac / 7 jours"},
-    "2_weeks": {"amount": 34.00, "days": 14, "label": "2 semaines", "description": "34\u20ac / 14 jours"},
-    "1_month": {"amount": 60.00, "days": 30, "label": "1 mois", "description": "60\u20ac / 30 jours"},
+    "1_week": {"amount": 19.00, "days": 7, "label": "1 semaine", "description": "19€ / 7 jours"},
+    "2_weeks": {"amount": 29.00, "days": 14, "label": "2 semaines", "description": "29€ / 14 jours"},
+    "1_month": {"amount": 39.00, "days": 30, "label": "1 mois", "description": "39€ / 30 jours"},
 }
 
 
@@ -23,9 +23,9 @@ def is_admin_user(user_data: dict) -> bool:
 async def get_boost_plans():
     """Get available boost plans"""
     return [
-        {"id": "1_week", "amount": 18.00, "currency": "eur", "label": "1 semaine", "description": "18\u20ac", "days": 7},
-        {"id": "2_weeks", "amount": 34.00, "currency": "eur", "label": "2 semaines", "description": "34\u20ac", "days": 14, "savings": "\u00c9conomie 2\u20ac"},
-        {"id": "1_month", "amount": 60.00, "currency": "eur", "label": "1 mois", "description": "60\u20ac", "days": 30, "savings": "\u00c9conomie 12\u20ac"},
+        {"id": "1_week", "amount": 19.00, "currency": "eur", "label": "1 semaine", "description": "19€", "days": 7},
+        {"id": "2_weeks", "amount": 29.00, "currency": "eur", "label": "2 semaines", "description": "29€", "days": 14, "savings": "Économie 9€"},
+        {"id": "1_month", "amount": 39.00, "currency": "eur", "label": "1 mois", "description": "39€", "days": 30, "savings": "Économie 18€"},
     ]
 
 

@@ -37,17 +37,18 @@ export default function BoostScreen() {
 
   const loadData = async () => {
     try {
-      const [plansData, statusData] = await Promise.all([
-        api.getBoostPlans(),
-        api.getBoostStatus(),
-      ]);
+      const plansData = await api.getBoostPlans();
       setPlans(plansData);
+    } catch (error) {
+      console.error('Error loading boost plans:', error);
+    }
+    try {
+      const statusData = await api.getBoostStatus();
       setBoostStatus(statusData);
     } catch (error) {
-      console.error('Error loading boost data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error loading boost status:', error);
     }
+    setLoading(false);
   };
 
   const handlePurchase = async (planId: string) => {

@@ -255,26 +255,6 @@ class ApiService {
     });
   }
 
-  // Reviews
-  async submitReview(data: {
-    dj_user_id: string;
-    client_nom: string;
-    client_email: string;
-    note: number;
-    commentaire: string;
-    type_evenement?: string;
-  }) {
-    return this.request<{ message: string; review_id: string }>('/api/reviews', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async getDJReviews(userId: string): Promise<Review[]> {
-    const data = await this.request<{reviews: Review[], total: number}>(`/api/djs/${userId}/reviews`);
-    return data.reviews || data as any;
-  }
-
   // Subscription
   async getSubscriptionPlans() {
     return this.request<{
@@ -324,8 +304,9 @@ class ApiService {
     });
   }
 
-  async getDJReviews(userId: string) {
-    return this.request<any[]>(`/api/djs/${userId}/reviews`);
+  async getDJReviews(userId: string): Promise<Review[]> {
+    const data = await this.request<{reviews: Review[], total: number}>(`/api/djs/${userId}/reviews`);
+    return data.reviews || data as any;
   }
 
   async getPendingReviews() {
@@ -391,7 +372,7 @@ class ApiService {
     if (params?.status) query.set('status', params.status);
     if (params?.department) query.set('department', params.department);
     if (params?.search) query.set('search', params.search);
-    return `${this.baseUrl}/api/admin/contacts/export-csv?${query.toString()}`;
+    return `${API_URL}/api/admin/contacts/export-csv?${query.toString()}`;
   }
 
   // Image Upload (saves to disk, avoids MongoDB 16MB limit)
