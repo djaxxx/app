@@ -371,6 +371,17 @@ async def get_dj_profile(user_id: str):
             del review["_id"]
     dj_public = {**dj}
     dj_public["reviews"] = reviews
+    # SECURITY: Remove all private/sensitive data from public profile
+    dj_public.pop("email", None)
+    dj_public.pop("telephone", None)
+    dj_public.pop("siret", None)
+    dj_public.pop("siret_verified", None)
+    dj_public.pop("company_name", None)
     dj_public.pop("assurance_rc_numero", None)
     dj_public.pop("assurance_rc_organisme", None)
+    dj_public.pop("subscription_status", None)
+    dj_public.pop("subscription_plan", None)
+    dj_public.pop("subscription_end_date", None)
+    dj_public.pop("trial_start", None)
+    dj_public.pop("trial_end", None)
     return dj_public
