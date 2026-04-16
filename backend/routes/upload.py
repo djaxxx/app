@@ -24,7 +24,10 @@ async def upload_image(request: Request):
 @router.post("/upload/images")
 async def upload_images(request: Request):
     """Upload multiple base64 images at once."""
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Corps de requête invalide")
     images_data = body.get("images", [])
     image_type = body.get("type", "gallery")
     if not images_data:
