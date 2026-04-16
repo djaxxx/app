@@ -41,18 +41,5 @@
         "EXPO_PUBLIC_BACKEND_URL": "https://dj-directory-fr.preview.emergentagent.com"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
-      "android": {
-        "serviceAccountKeyPath": "",
-        "track": "production"
-      }
-    }
   }
 }
