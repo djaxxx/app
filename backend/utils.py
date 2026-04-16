@@ -58,7 +58,7 @@ def check_badge_verification(profile: dict) -> bool:
 
 
 def save_base64_image(base64_data: str, prefix: str = "img") -> str:
-    """Save a base64-encoded image to disk and return the URL path."""
+    """Save a base64-encoded image to disk, auto-compress, and return the URL path."""
     try:
         if base64_data.startswith("data:"):
             header, encoded = base64_data.split(",", 1)
@@ -74,10 +74,31 @@ def save_base64_image(base64_data: str, prefix: str = "img") -> str:
             encoded = base64_data
             ext = "jpg"
         image_bytes = base64.b64decode(encoded)
-        filename = f"{prefix}_{uuid.uuid4().hex[:12]}.{ext}"
+        filename = f"{prefix}_{uuid.uuid4().hex[:12]}.jpg"
         filepath = UPLOADS_DIR / filename
-        with open(filepath, "wb") as f:
-            f.write(image_bytes)
+
+        # Auto-compress: resize to max 1200px and save as JPEG quality 80
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(image_bytes))
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            max_dim = 1200
+            if max(img.size) > max_dim:
+                ratio = max_dim / max(img.size)
+                new_size = (int(img.size[0] * ratio), int(img.size[1] * ratio))
+                img = img.resize(new_size, Image.LANCZOS)
+            output = io.BytesIO()
+            img.save(output, format='JPEG', quality=80, optimize=True)
+            with open(filepath, "wb") as f:
+                f.write(output.getvalue())
+            logger.info(f"Image saved & compressed: {filename} ({len(image_bytes)/1024:.0f}KB → {output.tell()/1024:.0f}KB)")
+        except Exception as compress_err:
+            logger.warning(f"Image compression failed, saving raw: {compress_err}")
+            with open(filepath, "wb") as f:
+                f.write(image_bytes)
+
         return f"/api/uploads/{filename}"
     except Exception as e:
         logger.error(f"Error saving image: {e}")
