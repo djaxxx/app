@@ -28,12 +28,15 @@ export default function LoginScreen() {
   const [localError, setLocalError] = useState('');
 
   const handleGoogleAuth = () => {
-    const redirectUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback`
-      : '';
-    const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
       window.location.href = authUrl;
+    } else {
+      // Native: use Linking to open auth URL
+      const Linking = require('expo-linking');
+      const authUrl = `https://auth.emergentagent.com/`;
+      Linking.openURL(authUrl);
     }
   };
 

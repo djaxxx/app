@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -53,10 +54,13 @@ export default function DashboardScreen() {
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     try {
       setSubscribing(true);
-      const originUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const originUrl = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : '';
       const result = await api.createSubscriptionCheckout(originUrl, plan);
-      if (typeof window !== 'undefined' && result.checkout_url) {
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && result.checkout_url) {
         window.location.href = result.checkout_url;
+      } else if (result.checkout_url) {
+        const Linking = require('expo-linking');
+        Linking.openURL(result.checkout_url);
       }
     } catch (error) {
       console.error('Subscription error:', error);

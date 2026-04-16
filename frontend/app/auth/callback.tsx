@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -16,21 +16,23 @@ export default function AuthCallback() {
     const processCallback = async () => {
       try {
         // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-        // Get session_id from URL fragment
+        // Get session_id from URL fragment (web only)
         let sessionId = '';
         
-        if (typeof window !== 'undefined') {
-          const hash = window.location.hash;
-          const params = new URLSearchParams(hash.substring(1));
-          sessionId = params.get('session_id') || '';
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          try {
+            const hash = window.location.hash;
+            const params = new URLSearchParams(hash.substring(1));
+            sessionId = params.get('session_id') || '';
+          } catch (e) {}
         }
 
         if (sessionId) {
           const user = await exchangeSession(sessionId);
           if (user) {
-            // Clear the URL fragment
-            if (typeof window !== 'undefined') {
-              window.history.replaceState(null, '', window.location.pathname);
+            // Clear the URL fragment (web only)
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+              try { window.history.replaceState(null, '', window.location.pathname); } catch (e) {}
             }
             // Navigate based on user type
             if (user.has_dj_profile) {

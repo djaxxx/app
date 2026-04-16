@@ -2,6 +2,7 @@ import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { useAuthStore } from '../src/stores/authStore';
 
 export default function RootLayout() {
@@ -9,9 +10,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    // Skip auth check if returning from OAuth callback
-    if (typeof window !== 'undefined' && window.location.hash?.includes('session_id=')) {
-      return;
+    // Skip auth check if returning from OAuth callback (web only)
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      try {
+        if (window.location?.hash?.includes('session_id=')) {
+          return;
+        }
+      } catch (_e) { /* native fallback */ }
     }
     checkAuth();
   }, []);
