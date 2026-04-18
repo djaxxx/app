@@ -2,9 +2,11 @@
 DJ Match France API - Main Server
 Modular FastAPI application with routers.
 """
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
+import traceback
 
 from database import client, db, UPLOADS_DIR, logger
 
@@ -81,3 +83,13 @@ async def startup_migrate_images():
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+# Global exception handler - catches ALL unhandled errors
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error on {request.method} {request.url.path}: {exc}\n{traceback.format_exc()}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Erreur interne du serveur. Veuillez réessayer."}
+    )
