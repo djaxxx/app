@@ -67,6 +67,33 @@ export default function ReviewsManageScreen() {
     }
   };
 
+  const deleteAllReviews = async () => {
+    const doDeleteAll = async () => {
+      try {
+        await api.deleteAllReviews();
+        setReviews([]);
+        setPendingCount(0);
+      } catch (error: any) {
+        if (Platform.OS === 'web') window.alert(error.message || 'Erreur');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Supprimer tous les ${reviews.length} avis ? Cette action est irréversible.`)) {
+        await doDeleteAll();
+      }
+    } else {
+      Alert.alert(
+        'Tout supprimer',
+        `Supprimer tous les ${reviews.length} avis ? Cette action est irréversible.`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Tout supprimer', style: 'destructive', onPress: doDeleteAll },
+        ]
+      );
+    }
+  };
+
   const filteredReviews = reviews.filter(r => filter === 'all' || r.status === filter);
 
   const getStatusColor = (status: string) => {
@@ -124,6 +151,14 @@ export default function ReviewsManageScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Delete All Button */}
+        {reviews.length > 0 && (
+          <TouchableOpacity style={styles.deleteAllBtn} onPress={deleteAllReviews}>
+            <Ionicons name="trash-outline" size={18} color="#fff" />
+            <Text style={styles.deleteAllBtnText}>Tout supprimer ({reviews.length})</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Reviews */}
         <View style={styles.list}>
@@ -207,4 +242,20 @@ const styles = StyleSheet.create({
   approveBtn: { flex: 1, flexDirection: 'row', backgroundColor: '#10B981', borderRadius: 10, padding: 12, alignItems: 'center', justifyContent: 'center', gap: 6 },
   rejectBtn: { flex: 1, flexDirection: 'row', backgroundColor: '#EF4444', borderRadius: 10, padding: 12, alignItems: 'center', justifyContent: 'center', gap: 6 },
   actionText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  deleteAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  deleteAllBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
 });

@@ -325,6 +325,14 @@ class ApiService {
     return this.request<{ message: string }>(`/api/dj/reviews/${reviewId}/reject`, { method: 'PUT' });
   }
 
+  async deleteAllContacts() {
+    return this.request<{ message: string; deleted: number }>('/api/dj/contacts', { method: 'DELETE' });
+  }
+
+  async deleteAllReviews() {
+    return this.request<{ message: string; deleted: number }>('/api/dj/reviews/all', { method: 'DELETE' });
+  }
+
   async adminCreateDJ(djData: any) {
     return this.request<{ message: string; dj: any }>('/api/admin/create-dj', {
       method: 'POST',

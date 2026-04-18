@@ -94,3 +94,15 @@ async def reject_review(review_id: str, request: Request):
     await db.reviews.update_one({"review_id": review_id}, {"$set": {"status": "rejected", "verified": False}})
     await _recalculate_rating(user_data["user_id"])
     return {"message": "Avis rejet\u00e9"}
+
+
+@router.delete("/dj/reviews/all")
+async def delete_all_reviews(request: Request):
+    """DJ: Delete ALL reviews (pending, approved, rejected)"""
+    user_data = await require_dj(request)
+    result = await db.reviews.delete_many({"dj_user_id": user_data["user_id"]})
+    await db.dj_profiles.update_one(
+        {"user_id": user_data["user_id"]},
+        {"$set": {"nombre_avis": 0, "note_moyenne": 0}}
+    )
+    return {"message": f"{result.deleted_count} avis supprimé(s)", "deleted": result.deleted_count}

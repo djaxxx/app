@@ -67,3 +67,15 @@ async def delete_contact_request(request_id: str, request: Request):
         {"$inc": {"nombre_demandes": -1}}
     )
     return {"message": "Demande supprim\u00e9e"}
+
+
+@router.delete("/dj/contacts")
+async def delete_all_contacts(request: Request):
+    """Delete ALL contact requests for the DJ"""
+    user_data = await require_dj(request)
+    result = await db.contact_requests.delete_many({"dj_user_id": user_data["user_id"]})
+    await db.dj_profiles.update_one(
+        {"user_id": user_data["user_id"]},
+        {"$set": {"nombre_demandes": 0}}
+    )
+    return {"message": f"{result.deleted_count} demande(s) supprimée(s)", "deleted": result.deleted_count}

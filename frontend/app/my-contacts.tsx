@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Linking,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -134,6 +135,32 @@ export default function MyContactsScreen() {
     }
   };
 
+  const deleteAllContacts = async () => {
+    const doDeleteAll = async () => {
+      try {
+        await api.deleteAllContacts();
+        setContacts([]);
+      } catch (error) {
+        console.error('Error deleting all contacts:', error);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Supprimer toutes les ${contacts.length} demandes ? Cette action est irréversible.`)) {
+        await doDeleteAll();
+      }
+    } else {
+      Alert.alert(
+        'Tout supprimer',
+        `Supprimer toutes les ${contacts.length} demandes ? Cette action est irréversible.`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Tout supprimer', style: 'destructive', onPress: doDeleteAll },
+        ]
+      );
+    }
+  };
+
   const filters = [
     { key: null, label: 'Toutes' },
     { key: 'nouveau', label: 'Nouvelles' },
@@ -184,6 +211,14 @@ export default function MyContactsScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Delete All Button */}
+      {contacts.length > 0 && (
+        <TouchableOpacity style={styles.deleteAllBtn} onPress={deleteAllContacts}>
+          <Ionicons name="trash-outline" size={18} color="#fff" />
+          <Text style={styles.deleteAllBtnText}>Tout supprimer ({contacts.length})</Text>
+        </TouchableOpacity>
+      )}
 
       <ScrollView
         refreshControl={
@@ -516,5 +551,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  deleteAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  deleteAllBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    marginLeft: 8,
   },
 });
