@@ -280,6 +280,36 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
                   </View>
+
+                  {/* Early Subscribe Section - Available from Day 1 */}
+                  <View style={styles.earlySubscribeCard}>
+                    <View style={styles.earlySubscribeHeader}>
+                      <Ionicons name="flash" size={20} color="#8B5CF6" />
+                      <Text style={styles.earlySubscribeTitle}>Activer mon compte maintenant</Text>
+                    </View>
+                    <Text style={styles.earlySubscribeSubtext}>
+                      Passez en abonnement pour rester actif sans attendre la fin de l'essai
+                    </Text>
+                    <View style={styles.earlySubscribePlans}>
+                      <TouchableOpacity
+                        style={styles.earlyPlanBtn}
+                        onPress={() => handleSubscribe('monthly')}
+                      >
+                        <Text style={styles.earlyPlanPrice}>8€/mois</Text>
+                        <Text style={styles.earlyPlanLabel}>Mensuel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.earlyPlanBtn, styles.earlyPlanBtnBest]}
+                        onPress={() => handleSubscribe('annual')}
+                      >
+                        <View style={styles.earlyBestBadge}>
+                          <Text style={styles.earlyBestBadgeText}>-17%</Text>
+                        </View>
+                        <Text style={styles.earlyPlanPrice}>80€/an</Text>
+                        <Text style={styles.earlyPlanLabel}>Économisez 16€</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                 )}
               </>
             ) : (
@@ -882,5 +912,75 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 12,
     marginTop: 2,
+  },
+  // Early Subscribe Section (during trial, from day 1)
+  earlySubscribeCard: {
+    backgroundColor: '#12123A',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  earlySubscribeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  earlySubscribeTitle: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  earlySubscribeSubtext: {
+    color: '#888',
+    fontSize: 13,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  earlySubscribePlans: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  earlyPlanBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  earlyPlanBtnBest: {
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    borderColor: '#8B5CF6',
+    borderWidth: 2,
+  },
+  earlyBestBadge: {
+    position: 'absolute',
+    top: -10,
+    right: 10,
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  earlyBestBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  earlyPlanPrice: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  earlyPlanLabel: {
+    color: '#aaa',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
