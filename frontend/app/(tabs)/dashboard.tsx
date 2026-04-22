@@ -266,6 +266,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
                 ) : (
+                  <>
                   <View style={styles.trialBanner}>
                     <View style={styles.trialBannerIcon}>
                       <Ionicons name="gift-outline" size={24} color="#8B5CF6" />
@@ -281,7 +282,6 @@ export default function DashboardScreen() {
                     </View>
                   </View>
 
-                  {/* Early Subscribe Section - Available from Day 1 */}
                   <View style={styles.earlySubscribeCard}>
                     <View style={styles.earlySubscribeHeader}>
                       <Ionicons name="flash" size={20} color="#8B5CF6" />
@@ -310,6 +310,7 @@ export default function DashboardScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
+                  </>
                 )}
               </>
             ) : (
