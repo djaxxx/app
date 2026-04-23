@@ -243,3 +243,31 @@ async def get_current_user_info(request: Request):
         "is_dj": dj_profile is not None, "dj_profile": dj_profile,
         "subscription_status": dj_profile.get("subscription_status") if dj_profile else None,
     }
+
+
+@router.delete("/auth/delete-account")
+async def delete_account(request: Request, response: Response):
+    """Delete user account and ALL associated data (RGPD compliance)"""
+    session_token = request.cookies.get("session_token")
+    if not session_token:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    session = await db.user_sessions.find_one({"session_token": session_token})
+    if not session:
+        raise HTTPException(status_code=401, detail="Session invalide")
+    user_id = session["user_id"]
+    user = await db.users.find_one({"user_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+    # Delete all user data
+    await db.dj_profiles.delete_one({"user_id": user_id})
+    await db.contact_requests.delete_many({"dj_user_id": user_id})
+    await db.reviews.delete_many({"dj_user_id": user_id})
+    await db.user_sessions.delete_many({"user_id": user_id})
+    await db.users.delete_one({"user_id": user_id})
+
+    # Clear session cookie
+    response.delete_cookie("session_token")
+
+    logger.info(f"Account deleted: {user.get('email')} ({user_id})")
+    return {"message": "Compte et données supprimés avec succès"}

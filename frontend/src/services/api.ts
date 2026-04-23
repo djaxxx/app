@@ -333,6 +333,10 @@ class ApiService {
     return this.request<{ message: string; deleted: number }>('/api/dj/reviews/all', { method: 'DELETE' });
   }
 
+  async deleteAccount() {
+    return this.request<{ message: string }>('/api/auth/delete-account', { method: 'DELETE' });
+  }
+
   async adminCreateDJ(djData: any) {
     return this.request<{ message: string; dj: any }>('/api/admin/create-dj', {
       method: 'POST',

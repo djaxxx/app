@@ -50,6 +50,33 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const doDelete = async () => {
+      try {
+        await api.deleteAccount();
+        logout();
+        router.replace('/');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+      }
+    };
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.confirm('Supprimer definitivement votre compte et toutes vos donnees ? Cette action est irreversible.')) {
+        await doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Supprimer mon compte',
+        'Supprimer definitivement votre compte et toutes vos donnees ? Cette action est irreversible.',
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Supprimer', style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Déconnexion',
@@ -227,9 +254,29 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Legal & Account Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Informations</Text>
+
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => router.push('/legal')}
+          >
+            <Ionicons name="document-text" size={24} color="#8B5CF6" />
+            <Text style={styles.actionText}>Mentions legales & CGU</Text>
+            <Ionicons name="chevron-forward" size={24} color="#666" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionItem} onPress={handleDeleteAccount}>
+            <Ionicons name="trash" size={24} color="#EF4444" />
+            <Text style={[styles.actionText, { color: '#EF4444' }]}>Supprimer mon compte</Text>
+            <Ionicons name="chevron-forward" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.footer}>
           <Text style={styles.footerText}>DJ Match France v1.0</Text>
-          <Text style={styles.footerCredit}>Créé par Adrien SEBERT</Text>
+          <Text style={styles.footerCredit}>Cree par Adrien SEBERT</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

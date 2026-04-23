@@ -282,8 +282,13 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.footer}>
+          <TouchableOpacity onPress={() => router.push('/legal')}>
+            <Text style={[styles.footerText, { color: '#8B5CF6', textDecorationLine: 'underline', marginBottom: 8 }]}>
+              Mentions legales - CGU - Confidentialite
+            </Text>
+          </TouchableOpacity>
           <Text style={styles.footerText}>© 2025 DJ Match France</Text>
-          <Text style={styles.footerCredit}>Créé par Adrien SEBERT</Text>
+          <Text style={styles.footerCredit}>Cree par Adrien SEBERT</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
