@@ -51,7 +51,8 @@
           "photosPermission": "Permettre à DJ Match d'accéder à vos photos pour créer votre profil",
           "cameraPermission": "Permettre à DJ Match d'utiliser votre caméra pour prendre des photos"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
