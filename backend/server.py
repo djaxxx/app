@@ -9,6 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 import traceback
 
 from database import client, db, UPLOADS_DIR, logger
+from routes.notifications import reminder_scheduler, check_and_send_trial_reminders
 
 # Import all route modules
 from routes.auth_routes import router as auth_router
@@ -78,6 +79,20 @@ async def startup_migrate_images():
             logger.info("No base64 images to migrate.")
     except Exception as e:
         logger.error(f"Startup migration error: {e}")
+
+    # Start background email reminder scheduler
+    import asyncio
+    asyncio.create_task(reminder_scheduler())
+    logger.info("Email reminder scheduler started (every 6 hours)")
+
+
+# Admin endpoint to manually trigger trial reminders
+@app.post("/api/admin/send-trial-reminders")
+async def admin_send_reminders(request: Request):
+    from auth import require_admin
+    await require_admin(request)
+    sent = await check_and_send_trial_reminders()
+    return {"message": f"{sent} rappel(s) envoye(s)"}
 
 
 @app.on_event("shutdown")
