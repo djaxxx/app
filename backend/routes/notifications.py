@@ -214,3 +214,43 @@ async def reminder_scheduler():
             logger.error(f"Reminder scheduler error: {e}")
         # Wait 6 hours
         await asyncio.sleep(6 * 60 * 60)
+
+
+async def send_bulk_expired_reminders():
+    """Send payment reminder emails to ALL expired DJs"""
+    now = datetime.now(timezone.utc)
+    expired_djs = await db.dj_profiles.find({
+        "subscription_status": {"$in": ["expired", "inactive"]}
+    }).to_list(1000)
+
+    logger.info(f"Bulk expired reminders: {len(expired_djs)} DJs found")
+    sent = 0
+    failed = 0
+
+    for dj in expired_djs:
+        user_id = dj.get("user_id")
+        dj_name = dj.get("nom_de_scene") or dj.get("prenom") or "DJ"
+
+        user = await db.users.find_one({"user_id": user_id})
+        if not user or not user.get("email"):
+            continue
+
+        email = user["email"]
+        subject = f"🎧 {dj_name}, reactivez votre profil DJ Match !"
+        html = build_reminder_email(dj_name, "", True)
+        success = send_email(email, subject, html)
+
+        if success:
+            await db.email_logs.insert_one({
+                "user_id": user_id, "email": email,
+                "reminder_type": "admin_bulk_expired",
+                "subject": subject, "sent_at": now,
+            })
+            sent += 1
+        else:
+            failed += 1
+
+        await asyncio.sleep(0.3)
+
+    logger.info(f"Bulk expired reminders: {sent} sent, {failed} failed")
+    return sent

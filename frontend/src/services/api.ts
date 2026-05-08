@@ -342,7 +342,7 @@ class ApiService {
   }
 
   async adminSendAllReminders() {
-    return this.request<{ message: string }>('/api/admin/send-trial-reminders', { method: 'POST' });
+    return this.request<{ message: string }>('/api/admin/send-expired-reminders', { method: 'POST' });
   }
 
   async adminCreateDJ(djData: any) {

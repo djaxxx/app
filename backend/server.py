@@ -95,6 +95,16 @@ async def admin_send_reminders(request: Request):
     return {"message": f"{sent} rappel(s) envoye(s)"}
 
 
+# Admin endpoint to send reminders to ALL expired DJs
+@app.post("/api/admin/send-expired-reminders")
+async def admin_send_expired_reminders(request: Request):
+    from auth import require_admin
+    from routes.notifications import send_bulk_expired_reminders
+    await require_admin(request)
+    sent = await send_bulk_expired_reminders()
+    return {"message": f"{sent} relance(s) envoyee(s) aux DJs expires"}
+
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
