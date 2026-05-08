@@ -131,6 +131,36 @@ export default function AdminScreen() {
     }
   };
 
+  const handleDeleteContacts = async (type: 'read' | 'unread' | 'all') => {
+    const labels = { read: 'lues', unread: 'non lues', all: 'toutes les' };
+    const counts = {
+      read: contacts.filter(c => c.read).length,
+      unread: contacts.filter(c => !c.read).length,
+      all: contacts.length,
+    };
+    const doDelete = async () => {
+      try {
+        let result;
+        if (type === 'read') result = await api.adminDeleteReadContacts();
+        else if (type === 'unread') result = await api.adminDeleteUnreadContacts();
+        else result = await api.adminDeleteAllContacts();
+        showAlert('Supprime', result.message);
+        loadData();
+      } catch (error: any) {
+        showAlert('Erreur', error.message);
+      }
+    };
+    const msg = `Supprimer ${labels[type]} demandes (${counts[type]}) ?`;
+    if (Platform.OS === 'web') {
+      if (window.confirm(msg)) doDelete();
+    } else {
+      Alert.alert('Confirmer', msg, [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: doDelete },
+      ]);
+    }
+  };
+
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const getStatusInfo = (dj: any) => {
@@ -423,6 +453,40 @@ export default function AdminScreen() {
         {activeTab === 'contacts' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Demandes de contact clients</Text>
+
+            {/* Delete Buttons */}
+            {contacts.length > 0 && (
+              <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12 }}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#10B981', paddingVertical: 10, borderRadius: 10, marginRight: 6 }}
+                  onPress={() => handleDeleteContacts('read')}
+                >
+                  <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700', marginLeft: 6 }}>
+                    Suppr. lues ({contacts.filter(c => c.read).length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F59E0B', paddingVertical: 10, borderRadius: 10, marginRight: 6 }}
+                  onPress={() => handleDeleteContacts('unread')}
+                >
+                  <Ionicons name="alert-circle" size={16} color="#000" />
+                  <Text style={{ color: '#000', fontSize: 13, fontWeight: '700', marginLeft: 6 }}>
+                    Suppr. non lues ({contacts.filter(c => !c.read).length})
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#EF4444', paddingVertical: 10, borderRadius: 10 }}
+                  onPress={() => handleDeleteContacts('all')}
+                >
+                  <Ionicons name="trash" size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700', marginLeft: 6 }}>
+                    Tout ({contacts.length})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {contacts.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="mail-open" size={48} color="#666" />

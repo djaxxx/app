@@ -197,3 +197,27 @@ async def admin_send_reminder(user_id: str, request: Request):
         return {"message": f"Relance envoyée à {email}", "success": True}
     else:
         raise HTTPException(status_code=500, detail="Erreur d'envoi email")
+
+
+@router.delete("/admin/contact-requests/read")
+async def admin_delete_read_contacts(request: Request):
+    """Admin: Delete all READ contact requests"""
+    await require_admin(request)
+    result = await db.contact_requests.delete_many({"read": True})
+    return {"message": f"{result.deleted_count} demande(s) lue(s) supprimee(s)", "deleted": result.deleted_count}
+
+
+@router.delete("/admin/contact-requests/unread")
+async def admin_delete_unread_contacts(request: Request):
+    """Admin: Delete all UNREAD contact requests"""
+    await require_admin(request)
+    result = await db.contact_requests.delete_many({"$or": [{"read": False}, {"read": {"$exists": False}}]})
+    return {"message": f"{result.deleted_count} demande(s) non lue(s) supprimee(s)", "deleted": result.deleted_count}
+
+
+@router.delete("/admin/contact-requests/all")
+async def admin_delete_all_contacts(request: Request):
+    """Admin: Delete ALL contact requests"""
+    await require_admin(request)
+    result = await db.contact_requests.delete_many({})
+    return {"message": f"{result.deleted_count} demande(s) supprimee(s)", "deleted": result.deleted_count}

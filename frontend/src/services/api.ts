@@ -345,6 +345,18 @@ class ApiService {
     return this.request<{ message: string }>('/api/admin/send-expired-reminders', { method: 'POST' });
   }
 
+  async adminDeleteReadContacts() {
+    return this.request<{ message: string; deleted: number }>('/api/admin/contact-requests/read', { method: 'DELETE' });
+  }
+
+  async adminDeleteUnreadContacts() {
+    return this.request<{ message: string; deleted: number }>('/api/admin/contact-requests/unread', { method: 'DELETE' });
+  }
+
+  async adminDeleteAllContacts() {
+    return this.request<{ message: string; deleted: number }>('/api/admin/contact-requests/all', { method: 'DELETE' });
+  }
+
   async adminCreateDJ(djData: any) {
     return this.request<{ message: string; dj: any }>('/api/admin/create-dj', {
       method: 'POST',
