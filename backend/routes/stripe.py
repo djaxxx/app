@@ -71,6 +71,8 @@ async def get_subscription_status(session_id: str, request: Request):
         webhook_url = f"{host_url}/api/webhook/stripe"
         stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
         status = await stripe_checkout.get_checkout_status(session_id)
+        status_dict = {"status": status.status, "payment_status": status.payment_status,
+                       "amount_total": status.amount_total, "currency": status.currency}
         await db.payment_transactions.update_one(
             {"session_id": session_id},
             {"$set": {"status": status.status, "payment_status": status.payment_status, "updated_at": datetime.now(timezone.utc)}}
@@ -105,10 +107,13 @@ async def stripe_webhook(request: Request):
         signature = request.headers.get("Stripe-Signature", "")
         webhook_response = await stripe_checkout.handle_webhook(body, signature)
         if webhook_response.payment_status == "paid":
-            user_id = webhook_response.metadata.get("user_id")
-            payment_type = webhook_response.metadata.get("type", "dj_subscription")
-            plan = webhook_response.metadata.get("plan", "monthly")
-            days = int(webhook_response.metadata.get("days", "30"))
+            user_id = webhook_response.metadata.get("user_id") if isinstance(webhook_response.metadata, dict) else getattr(webhook_response.metadata, 'get', lambda k, d=None: d)("user_id")
+            metadata = dict(webhook_response.metadata) if hasattr(webhook_response.metadata, '__iter__') else {}
+            if not user_id:
+                user_id = metadata.get("user_id")
+            payment_type = metadata.get("type", "dj_subscription")
+            plan = metadata.get("plan", "monthly")
+            days = int(metadata.get("days", "30"))
             if user_id and payment_type == "dj_boost":
                 boost_start = datetime.now(timezone.utc)
                 boost_end = boost_start + timedelta(days=days)

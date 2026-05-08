@@ -169,3 +169,31 @@ async def admin_delete_dj(user_id: str, request: Request):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="DJ non trouv\u00e9")
     return {"message": "DJ supprim\u00e9 avec succ\u00e8s"}
+
+
+@router.post("/admin/djs/{user_id}/send-reminder")
+async def admin_send_reminder(user_id: str, request: Request):
+    """Admin: Send payment reminder email to a specific DJ"""
+    await require_admin(request)
+    from routes.notifications import send_email, build_reminder_email
+    dj = await db.dj_profiles.find_one({"user_id": user_id})
+    if not dj:
+        raise HTTPException(status_code=404, detail="DJ non trouvé")
+    user = await db.users.find_one({"user_id": user_id})
+    if not user or not user.get("email"):
+        raise HTTPException(status_code=400, detail="Pas d'email pour ce DJ")
+    email = user["email"]
+    dj_name = dj.get("nom_de_scene") or dj.get("prenom") or "DJ"
+    subject = f"🎧 {dj_name}, reactivez votre profil DJ Match !"
+    html = build_reminder_email(dj_name, "", True)
+    success = send_email(email, subject, html)
+    if success:
+        await db.email_logs.insert_one({
+            "user_id": user_id, "email": email,
+            "reminder_type": "admin_manual",
+            "subject": subject,
+            "sent_at": datetime.now(timezone.utc),
+        })
+        return {"message": f"Relance envoyée à {email}", "success": True}
+    else:
+        raise HTTPException(status_code=500, detail="Erreur d'envoi email")

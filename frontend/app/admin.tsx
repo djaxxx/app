@@ -102,6 +102,37 @@ export default function AdminScreen() {
     }
   };
 
+  const handleSendReminder = async (userId: string, name: string) => {
+    try {
+      const result = await api.adminSendReminder(userId);
+      showAlert('Email envoye', result.message);
+    } catch (error: any) {
+      showAlert('Erreur', error.message);
+    }
+  };
+
+  const handleSendAllReminders = async () => {
+    const expiredCount = djs.filter(d => d.subscription_status === 'expired').length;
+    const doSend = async () => {
+      try {
+        const result = await api.adminSendAllReminders();
+        showAlert('Relance envoyee', result.message);
+      } catch (error: any) {
+        showAlert('Erreur', error.message);
+      }
+    };
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Envoyer un email de relance a tous les DJs expires (${expiredCount}) ?`)) doSend();
+    } else {
+      Alert.alert('Relance globale', `Envoyer un email a ${expiredCount} DJs expires ?`, [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Envoyer', onPress: doSend },
+      ]);
+    }
+  };
+
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   const getStatusInfo = (dj: any) => {
     const status = dj.subscription_status || 'inactive';
     if (status === 'active') return { label: 'Actif', color: '#10B981', bg: 'rgba(16,185,129,0.15)' };
@@ -115,6 +146,9 @@ export default function AdminScreen() {
   };
 
   const filteredDJs = djs.filter(dj => {
+    // Filter by status
+    if (statusFilter !== 'all' && dj.subscription_status !== statusFilter) return false;
+    // Filter by search
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -219,6 +253,44 @@ export default function AdminScreen() {
               <Text style={styles.crmLinkText}>Exporter les contacts (CSV)</Text>
               <Ionicons name="chevron-forward" size={18} color="#8B5CF6" />
             </TouchableOpacity>
+
+            {/* Status Filters */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: 16, marginBottom: 12 }}>
+              {[
+                { id: 'all', label: 'Tous', count: djs.length, color: '#8B5CF6' },
+                { id: 'active', label: 'Actifs', count: djs.filter(d => d.subscription_status === 'active').length, color: '#10B981' },
+                { id: 'trial', label: 'Essai', count: djs.filter(d => d.subscription_status === 'trial').length, color: '#F59E0B' },
+                { id: 'expired', label: 'Expires', count: djs.filter(d => d.subscription_status === 'expired').length, color: '#EF4444' },
+                { id: 'inactive', label: 'Inactifs', count: djs.filter(d => !d.subscription_status || d.subscription_status === 'inactive').length, color: '#6B7280' },
+              ].map(f => (
+                <TouchableOpacity
+                  key={f.id}
+                  onPress={() => setStatusFilter(f.id)}
+                  style={{
+                    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8,
+                    backgroundColor: statusFilter === f.id ? f.color : 'rgba(255,255,255,0.05)',
+                    borderWidth: 1, borderColor: statusFilter === f.id ? f.color : 'rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <Text style={{ color: statusFilter === f.id ? '#fff' : '#aaa', fontSize: 13, fontWeight: '600' }}>
+                    {f.label} ({f.count})
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Bulk Reminder Button (when filtering expired) */}
+            {(statusFilter === 'expired' || statusFilter === 'all') && djs.filter(d => d.subscription_status === 'expired').length > 0 && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#EF4444', marginHorizontal: 16, marginBottom: 12, paddingVertical: 12, borderRadius: 10 }}
+                onPress={handleSendAllReminders}
+              >
+                <Ionicons name="mail" size={18} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', marginLeft: 8 }}>
+                  Relancer tous les expires ({djs.filter(d => d.subscription_status === 'expired').length})
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {filteredDJs.map((dj) => {
               const statusInfo = getStatusInfo(dj);
@@ -328,6 +400,16 @@ export default function AdminScreen() {
                         >
                           <Ionicons name="trash" size={16} color="#fff" />
                         </TouchableOpacity>
+
+                        {(dj.subscription_status === 'expired' || dj.subscription_status === 'inactive') && (
+                          <TouchableOpacity
+                            style={[styles.actionBtn, { backgroundColor: '#F59E0B' }]}
+                            onPress={() => handleSendReminder(dj.user_id, dj.nom_de_scene || 'DJ')}
+                          >
+                            <Ionicons name="mail" size={16} color="#000" />
+                            <Text style={[styles.actionBtnText, { color: '#000' }]}>Relancer</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   )}

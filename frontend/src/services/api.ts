@@ -337,6 +337,14 @@ class ApiService {
     return this.request<{ message: string }>('/api/auth/delete-account', { method: 'DELETE' });
   }
 
+  async adminSendReminder(userId: string) {
+    return this.request<{ message: string; success: boolean }>(`/api/admin/djs/${userId}/send-reminder`, { method: 'POST' });
+  }
+
+  async adminSendAllReminders() {
+    return this.request<{ message: string }>('/api/admin/send-trial-reminders', { method: 'POST' });
+  }
+
   async adminCreateDJ(djData: any) {
     return this.request<{ message: string; dj: any }>('/api/admin/create-dj', {
       method: 'POST',
