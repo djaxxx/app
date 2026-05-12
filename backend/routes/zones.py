@@ -186,3 +186,34 @@ async def remove_department_zone(dept_code: str, request: Request):
         {"$set": {"departments_zones": new_zones}}
     )
     return {"message": f"Departement {dept_code} retire", "departments_zones": new_zones}
+
+
+@router.get("/dj/zone/verify/{session_id}")
+async def verify_zone_payment(session_id: str, request: Request):
+    """Verify zone extension payment directly with Stripe"""
+    user_data = await require_dj(request)
+    try:
+        import stripe as stripe_lib
+        stripe_lib.api_key = STRIPE_API_KEY
+        session = stripe_lib.checkout.Session.retrieve(session_id)
+        
+        if session.payment_status == "paid":
+            transaction = await db.payment_transactions.find_one({"session_id": session_id})
+            if transaction and transaction.get("status") != "completed":
+                dept_code = transaction.get("department_code", "")
+                if dept_code:
+                    profile = await db.dj_profiles.find_one({"user_id": transaction["user_id"]})
+                    current_zones = profile.get("departments_zones", []) if profile else []
+                    if dept_code not in current_zones:
+                        current_zones.append(dept_code)
+                        await db.dj_profiles.update_one(
+                            {"user_id": transaction["user_id"]},
+                            {"$set": {"departments_zones": current_zones}}
+                        )
+                await db.payment_transactions.update_one({"session_id": session_id}, {"$set": {"status": "completed"}})
+                logger.info(f"Zone activated via verify for user {transaction['user_id']}: {dept_code}")
+        
+        return {"status": session.status, "payment_status": session.payment_status}
+    except Exception as e:
+        logger.error(f"Zone verify error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur verification: {str(e)}")

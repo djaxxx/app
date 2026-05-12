@@ -357,6 +357,14 @@ class ApiService {
     return this.request<{ message: string; deleted: number }>('/api/admin/contact-requests/all', { method: 'DELETE' });
   }
 
+  async verifyBoostPayment(sessionId: string) {
+    return this.request<{ status: string; payment_status: string }>(`/api/boost/verify/${sessionId}`);
+  }
+
+  async verifyZonePayment(sessionId: string) {
+    return this.request<{ status: string; payment_status: string }>(`/api/dj/zone/verify/${sessionId}`);
+  }
+
   async adminCreateDJ(djData: any) {
     return this.request<{ message: string; dj: any }>('/api/admin/create-dj', {
       method: 'POST',

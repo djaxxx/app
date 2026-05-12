@@ -177,3 +177,33 @@ async def create_boost_checkout(request: Request):
     except Exception as e:
         logger.error(f"Boost checkout error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur paiement: {str(e)}")
+
+
+@router.get("/boost/verify/{session_id}")
+async def verify_boost_payment(session_id: str, request: Request):
+    """Verify boost payment status directly with Stripe"""
+    user_data = await require_dj(request)
+    try:
+        import stripe as stripe_lib
+        stripe_lib.api_key = STRIPE_API_KEY
+        session = stripe_lib.checkout.Session.retrieve(session_id)
+        
+        if session.payment_status == "paid":
+            transaction = await db.payment_transactions.find_one({"session_id": session_id})
+            if transaction and transaction.get("status") != "completed":
+                from datetime import timedelta
+                days = transaction.get("days", 7)
+                boost_start = datetime.now(timezone.utc)
+                boost_end = boost_start + timedelta(days=days)
+                await db.dj_profiles.update_one(
+                    {"user_id": transaction["user_id"]},
+                    {"$set": {"boost_active": True, "boost_start": boost_start,
+                              "boost_end": boost_end, "boost_plan": transaction.get("plan", "1_week")}}
+                )
+                await db.payment_transactions.update_one({"session_id": session_id}, {"$set": {"status": "completed"}})
+                logger.info(f"Boost activated via verify for user {transaction['user_id']}")
+        
+        return {"status": session.status, "payment_status": session.payment_status}
+    except Exception as e:
+        logger.error(f"Boost verify error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur verification: {str(e)}")

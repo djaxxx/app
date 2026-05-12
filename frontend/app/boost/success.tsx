@@ -1,11 +1,33 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../../src/services/api';
 
 export default function BoostSuccessScreen() {
   const router = useRouter();
+  const { session_id } = useLocalSearchParams();
+  const [verifying, setVerifying] = useState(!!session_id);
+  const [paid, setPaid] = useState(false);
+
+  useEffect(() => {
+    if (session_id) {
+      api.verifyBoostPayment(session_id as string)
+        .then(res => { setPaid(res.payment_status === 'paid'); })
+        .catch(() => {})
+        .finally(() => setVerifying(false));
+    }
+  }, [session_id]);
+
+  if (verifying) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color="#FFD700" />
+        <Text style={{ color: '#fff', marginTop: 16 }}>Verification du paiement...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

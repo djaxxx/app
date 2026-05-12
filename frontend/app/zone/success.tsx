@@ -1,12 +1,33 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../../src/services/api';
 
 export default function ZoneSuccessScreen() {
   const router = useRouter();
-  const { dept } = useLocalSearchParams();
+  const { dept, session_id } = useLocalSearchParams();
+  const [verifying, setVerifying] = useState(!!session_id);
+
+  useEffect(() => {
+    if (session_id) {
+      api.verifyZonePayment(session_id as string)
+        .catch(() => {})
+        .finally(() => setVerifying(false));
+    }
+  }, [session_id]);
+
+  if (verifying) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <ActivityIndicator size="large" color="#10B981" />
+          <Text style={{ color: '#fff', marginTop: 16 }}>Verification du paiement...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
