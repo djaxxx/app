@@ -26,7 +26,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -58,7 +59,12 @@
       "typedRoutes": true
     },
     "extra": {
-      "createdBy": "Adrien SEBERT"
-    }
+      "createdBy": "Adrien SEBERT",
+      "router": {},
+      "eas": {
+        "projectId": "0ec2bbd5-7f35-42cf-a9ee-e6f3052ab323"
+      }
+    },
+    "owner": "adriensebert"
   }
 }
