@@ -22,7 +22,7 @@
         "backgroundColor": "#0c0c0c"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.adriensebert.djmatch",
+      "package": "app.emergent.djdirectoryfr81d0ce73",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
