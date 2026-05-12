@@ -63,21 +63,24 @@ async def create_subscription_checkout(request: Request):
 
 @router.get("/subscription/status/{session_id}")
 async def get_subscription_status(session_id: str, request: Request):
-    """Check subscription payment status"""
+    """Check subscription payment status - uses Stripe API directly"""
     await require_auth(request)
     try:
-        from emergentintegrations.payments.stripe.checkout import StripeCheckout
-        host_url = str(request.base_url).rstrip("/")
-        webhook_url = f"{host_url}/api/webhook/stripe"
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-        status = await stripe_checkout.get_checkout_status(session_id)
-        status_dict = {"status": status.status, "payment_status": status.payment_status,
-                       "amount_total": status.amount_total, "currency": status.currency}
+        import stripe as stripe_lib
+        stripe_lib.api_key = STRIPE_API_KEY
+
+        # Get session status directly from Stripe
+        session = stripe_lib.checkout.Session.retrieve(session_id)
+        payment_status = session.payment_status
+        sess_status = session.status
+
+        # Update transaction in DB
         await db.payment_transactions.update_one(
             {"session_id": session_id},
-            {"$set": {"status": status.status, "payment_status": status.payment_status, "updated_at": datetime.now(timezone.utc)}}
+            {"$set": {"status": sess_status, "payment_status": payment_status, "updated_at": datetime.now(timezone.utc)}}
         )
-        if status.payment_status == "paid":
+
+        if payment_status == "paid":
             transaction = await db.payment_transactions.find_one({"session_id": session_id})
             if transaction and transaction.get("status") != "completed":
                 days = transaction.get("days", 30)
@@ -88,11 +91,30 @@ async def get_subscription_status(session_id: str, request: Request):
                               "subscription_plan": transaction.get("plan", "monthly"), "is_active": True}}
                 )
                 await db.payment_transactions.update_one({"session_id": session_id}, {"$set": {"status": "completed"}})
-        return {"status": status.status, "payment_status": status.payment_status,
-                "amount_total": status.amount_total, "currency": status.currency}
+                logger.info(f"Subscription activated via status check for user {transaction['user_id']}")
+            elif not transaction:
+                # Fallback: activate from session metadata
+                try:
+                    meta = dict(session.metadata) if session.metadata else {}
+                    user_id = meta.get("user_id", "")
+                    plan = meta.get("plan", "monthly")
+                    days = int(meta.get("days", "30"))
+                    if user_id:
+                        subscription_end = datetime.now(timezone.utc) + timedelta(days=days)
+                        await db.dj_profiles.update_one(
+                            {"user_id": user_id},
+                            {"$set": {"subscription_status": "active", "subscription_end_date": subscription_end,
+                                      "subscription_plan": plan, "is_active": True}}
+                        )
+                        logger.info(f"Subscription activated from metadata for user {user_id}")
+                except Exception:
+                    pass
+
+        return {"status": sess_status, "payment_status": payment_status,
+                "amount_total": session.amount_total, "currency": session.currency}
     except Exception as e:
         logger.error(f"Subscription status error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Erreur lors de la v\u00e9rification")
+        raise HTTPException(status_code=500, detail=f"Erreur de verification: {str(e)}")
 
 
 @router.post("/webhook/stripe")
