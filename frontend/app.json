@@ -2,7 +2,7 @@
   "expo": {
     "name": "DJ Match",
     "slug": "dj-match",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "djmatch",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.adriensebert.djmatch",
+      "bundleIdentifier": "app.emergent.djdirectoryfr81d0ce73",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Prenez une photo pour votre profil DJ",
