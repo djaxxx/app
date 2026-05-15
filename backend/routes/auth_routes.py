@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from datetime import datetime, timezone, timedelta
 import uuid
 import httpx
+import jwt
 
 from database import db, ADMIN_EMAIL, logger
 
@@ -271,3 +272,102 @@ async def delete_account(request: Request, response: Response):
 
     logger.info(f"Account deleted: {user.get('email')} ({user_id})")
     return {"message": "Compte et données supprimés avec succès"}
+
+
+@router.post("/auth/apple")
+async def apple_sign_in(request: Request, response: Response):
+    """Sign in with Apple - handles identity token verification"""
+    try:
+        body = await request.json()
+        identity_token = body.get("identityToken")
+        apple_user_id = body.get("user")
+        full_name = body.get("fullName", {})
+        apple_email = body.get("email")
+
+        if not identity_token or not apple_user_id:
+            raise HTTPException(status_code=400, detail="Donnees Apple manquantes")
+
+        # Decode the Apple identity token (JWT) without verification for user info
+        # Apple's token contains email and sub (user ID)
+        try:
+            decoded = jwt.decode(identity_token, options={"verify_signature": False})
+            email = decoded.get("email") or apple_email
+            sub = decoded.get("sub") or apple_user_id
+        except Exception:
+            email = apple_email
+            sub = apple_user_id
+
+        if not email:
+            # Apple may not return email on subsequent logins, find by apple_user_id
+            existing_user = await db.users.find_one({"apple_user_id": sub})
+            if existing_user:
+                email = existing_user["email"]
+            else:
+                raise HTTPException(status_code=400, detail="Email non disponible. Reessayez en supprimant l'app des reglages Apple ID.")
+
+        # Check if user already exists
+        user = await db.users.find_one({"$or": [{"email": email}, {"apple_user_id": sub}]})
+
+        if user:
+            # Existing user - update apple_user_id if needed
+            if not user.get("apple_user_id"):
+                await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"apple_user_id": sub}})
+        else:
+            # New user - create account
+            name_parts = []
+            if full_name:
+                if isinstance(full_name, dict):
+                    if full_name.get("givenName"):
+                        name_parts.append(full_name["givenName"])
+                    if full_name.get("familyName"):
+                        name_parts.append(full_name["familyName"])
+            display_name = " ".join(name_parts) if name_parts else email.split("@")[0]
+
+            user_id = f"user_{uuid.uuid4().hex[:12]}"
+            user = {
+                "user_id": user_id,
+                "email": email,
+                "name": display_name,
+                "auth_provider": "apple",
+                "apple_user_id": sub,
+                "is_admin": email == ADMIN_EMAIL,
+                "is_dj": False,
+                "has_dj_profile": False,
+                "created_at": datetime.now(timezone.utc),
+            }
+            await db.users.insert_one(user)
+            logger.info(f"New Apple user: {email} ({user_id})")
+
+        # Create session
+        session_token = str(uuid.uuid4())
+        await db.user_sessions.insert_one({
+            "session_token": session_token,
+            "user_id": user["user_id"],
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
+        })
+
+        # Check DJ profile
+        dj_profile = await db.dj_profiles.find_one({"user_id": user["user_id"]})
+        has_dj_profile = dj_profile is not None
+
+        response.set_cookie(
+            key="session_token", value=session_token,
+            httponly=True, secure=True, samesite="none",
+            max_age=7 * 24 * 60 * 60,
+        )
+
+        return {
+            "user_id": user["user_id"],
+            "email": user["email"],
+            "name": user.get("name", ""),
+            "is_admin": user.get("is_admin", False),
+            "is_dj": dj_profile is not None,
+            "has_dj_profile": has_dj_profile,
+            "subscription_status": dj_profile.get("subscription_status") if dj_profile else None,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Apple auth error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur connexion Apple: {str(e)}")

@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.adriensebert.djmatch",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Prenez une photo pour votre profil DJ",
         "NSPhotoLibraryUsageDescription": "Choisissez des photos pour votre profil DJ"
@@ -37,6 +38,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       [
         "expo-splash-screen",
         {

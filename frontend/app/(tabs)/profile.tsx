@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuthStore } from '../../src/stores/authStore';
 import { api } from '../../src/services/api';
 import { Button } from '../../src/components/Button';
@@ -40,7 +41,7 @@ export default function ProfileScreen() {
     loadProfile();
   }, [isAuthenticated, user]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const redirectUrl = `${window.location.origin}/auth/callback`;
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;

@@ -144,7 +144,7 @@ export default function DJRegisterScreen() {
     return () => clearTimeout(lookupTimeout);
   }, [formData.ville]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const redirectUrl = `${window.location.origin}/auth/callback`;
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;

@@ -14,11 +14,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuthStore } from '../../src/stores/authStore';
+import { api } from '../../src/services/api';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { registerWithEmail, loginWithEmail, error, clearError, isLoading } = useAuthStore();
+  const { registerWithEmail, loginWithEmail, error, clearError, isLoading, checkAuth } = useAuthStore();
 
   const [isRegister, setIsRegister] = useState(true);
   const [name, setName] = useState('');
@@ -26,17 +29,84 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [socialLoading, setSocialLoading] = useState(false);
 
-  const handleGoogleAuth = () => {
+  const handleGoogleAuth = async () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       const redirectUrl = `${window.location.origin}/auth/callback`;
       const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
       window.location.href = authUrl;
     } else {
-      // Native: use Linking to open auth URL
-      const Linking = require('expo-linking');
-      const authUrl = `https://auth.emergentagent.com/`;
-      Linking.openURL(authUrl);
+      // Native: use WebBrowser (Safari View Controller on iOS)
+      try {
+        setSocialLoading(true);
+        const callbackUrl = 'djmatch://auth/callback';
+        const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(callbackUrl)}`;
+        const result = await WebBrowser.openAuthSessionAsync(authUrl, callbackUrl);
+        
+        if (result.type === 'success' && result.url) {
+          // Extract session_id from URL
+          const url = result.url;
+          const hashPart = url.split('#')[1] || '';
+          const params = new URLSearchParams(hashPart);
+          const sessionId = params.get('session_id');
+          
+          if (sessionId) {
+            const user = await useAuthStore.getState().exchangeSession(sessionId);
+            if (user) {
+              if (user.has_dj_profile) {
+                router.replace('/(tabs)/dashboard');
+              } else {
+                router.replace('/dj-register');
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Google auth error:', error);
+        setLocalError('Erreur de connexion Google. Reessayez.');
+      } finally {
+        setSocialLoading(false);
+      }
+    }
+  };
+
+  const handleAppleAuth = async () => {
+    try {
+      setSocialLoading(true);
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      // Send credential to backend
+      const response = await api.request<any>('/api/auth/apple', {
+        method: 'POST',
+        body: JSON.stringify({
+          identityToken: credential.identityToken,
+          fullName: credential.fullName,
+          email: credential.email,
+          user: credential.user,
+        }),
+      });
+
+      if (response) {
+        await checkAuth();
+        if (response.has_dj_profile) {
+          router.replace('/(tabs)/dashboard');
+        } else {
+          router.replace('/dj-register');
+        }
+      }
+    } catch (error: any) {
+      if (error.code !== 'ERR_REQUEST_CANCELED') {
+        console.error('Apple auth error:', error);
+        setLocalError('Erreur de connexion Apple. Reessayez.');
+      }
+    } finally {
+      setSocialLoading(false);
     }
   };
 
@@ -107,12 +177,34 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Google Button - PROMINENT */}
-          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleAuth}>
-            <Ionicons name="logo-google" size={22} color="#fff" />
-            <Text style={styles.googleButtonText}>
-              {isRegister ? "S'inscrire avec Google" : 'Se connecter avec Google'}
-            </Text>
+          {/* Apple Sign In - iOS only (REQUIRED by Apple) */}
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity style={styles.appleButton} onPress={handleAppleAuth} disabled={socialLoading}>
+              {socialLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="logo-apple" size={22} color="#fff" />
+                  <Text style={styles.appleButtonText}>
+                    {isRegister ? "S'inscrire avec Apple" : 'Se connecter avec Apple'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Google Button */}
+          <TouchableOpacity style={styles.googleButton} onPress={handleGoogleAuth} disabled={socialLoading}>
+            {socialLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={22} color="#fff" />
+                <Text style={styles.googleButtonText}>
+                  {isRegister ? "S'inscrire avec Google" : 'Se connecter avec Google'}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Divider */}
@@ -268,12 +360,29 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 16,
     marginBottom: 20,
-    gap: 10,
   },
   googleButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+    marginLeft: 10,
+  },
+  appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000',
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  appleButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 10,
   },
   divider: {
     flexDirection: 'row',
