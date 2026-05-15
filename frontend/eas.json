@@ -39,7 +39,8 @@
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://dj-directory-fr.preview.emergentagent.com"
-      }
+      },
+      "credentialsSource": "local"
     }
   },
   "submit": {
