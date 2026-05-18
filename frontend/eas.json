@@ -31,16 +31,17 @@
     },
     "production": {
       "ios": {
-        "autoIncrement": true
+        "autoIncrement": true,
+        "credentialsSource": "local"
       },
       "android": {
         "buildType": "app-bundle",
-        "autoIncrement": true
+        "autoIncrement": true,
+        "credentialsSource": "remote"
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://dj-directory-fr.preview.emergentagent.com"
-      },
-      "credentialsSource": "local"
+      }
     }
   },
   "submit": {

@@ -1,16 +1,35 @@
 import { DJProfile, DJSearchFilters, EventType, ContactRequest, Review } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const TOKEN_KEY = 'session_token';
+
+export async function getStoredToken(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export async function setStoredToken(token: string | null): Promise<void> {
+  try {
+    if (token) await AsyncStorage.setItem(TOKEN_KEY, token);
+    else await AsyncStorage.removeItem(TOKEN_KEY);
+  } catch {}
+}
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const token = await getStoredToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> || {}),
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -18,7 +37,12 @@ class ApiService {
       throw new Error(error.detail || `HTTP error ${response.status}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    // Auto-store session_token if returned by an auth endpoint
+    if (data && typeof data === 'object' && data.session_token) {
+      await setStoredToken(data.session_token);
+    }
+    return data;
   }
 
   // SIRET Verification

@@ -125,7 +125,7 @@ async def register_email(request: Request, response: Response):
     return {"user_id": user_id, "email": email, "name": existing.get("name", name) if existing else name,
             "picture": existing.get("picture") if existing else None,
             "has_dj_profile": dj_profile is not None, "is_dj": dj_profile is not None,
-            "is_admin": is_admin}
+            "is_admin": is_admin, "session_token": session_token}
 
 
 @router.post("/auth/login-email")
@@ -159,7 +159,7 @@ async def login_email(request: Request, response: Response):
     is_admin = ADMIN_EMAIL and user["email"].lower() == ADMIN_EMAIL.lower()
     return {"user_id": user_id, "email": user["email"], "name": user.get("name", ""),
             "picture": user.get("picture"), "has_dj_profile": dj_profile is not None,
-            "is_dj": dj_profile is not None, "is_admin": is_admin}
+            "is_dj": dj_profile is not None, "is_admin": is_admin, "session_token": session_token}
 
 
 @router.post("/auth/session")
@@ -209,7 +209,7 @@ async def create_session(request: Request, response: Response):
             is_admin = ADMIN_EMAIL and email.lower() == ADMIN_EMAIL.lower()
             return {"user_id": user_id, "email": email, "name": name, "picture": picture,
                     "has_dj_profile": dj_profile is not None, "is_dj": dj_profile is not None,
-                    "is_admin": is_admin}
+                    "is_admin": is_admin, "session_token": session_token}
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Delai d'attente depasse")
     except HTTPException:
@@ -365,6 +365,7 @@ async def apple_sign_in(request: Request, response: Response):
             "is_dj": dj_profile is not None,
             "has_dj_profile": has_dj_profile,
             "subscription_status": dj_profile.get("subscription_status") if dj_profile else None,
+            "session_token": session_token,
         }
     except HTTPException:
         raise
