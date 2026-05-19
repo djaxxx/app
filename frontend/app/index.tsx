@@ -11,6 +11,7 @@ import {
   Image,
   TextInput,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -28,6 +29,8 @@ const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || '';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const { width: winWidth } = useWindowDimensions();
+  const useWebCard = Platform.OS === 'web' && winWidth >= 768;
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -254,7 +257,7 @@ export default function HomeScreen() {
             <ActivityIndicator size="large" color="#8B5CF6" style={styles.loader} />
           ) : djs.length > 0 ? (
             djs.map((dj) => (
-              Platform.OS === 'web' ? (
+              useWebCard ? (
                 <DJCardWeb key={dj.user_id} dj={dj} onPress={() => handleDJPress(dj.user_id)} />
               ) : (
                 <DJCard key={dj.user_id} dj={dj} onPress={() => handleDJPress(dj.user_id)} />
