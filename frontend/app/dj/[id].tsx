@@ -13,6 +13,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -28,6 +29,8 @@ const { width } = Dimensions.get('window');
 export default function DJProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { width: winWidth } = useWindowDimensions();
+  const isDesktopWeb = Platform.OS === 'web' && winWidth >= 768;
   const [dj, setDJ] = useState<DJProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,9 +149,10 @@ export default function DJProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
+      <ScrollView contentContainerStyle={isDesktopWeb ? styles.scrollContentDesktop : undefined}>
+        <View style={isDesktopWeb ? styles.maxWidthContainer : undefined}>
         {/* Hero Image */}
-        <View style={styles.heroSection}>
+        <View style={[styles.heroSection, isDesktopWeb && styles.heroSectionDesktop]}>
           {dj.photo_profil ? (
             <Image source={{ uri: resolveImageUrl(dj.photo_profil) || '' }} style={styles.heroImage} />
           ) : (
@@ -290,28 +294,50 @@ export default function DJProfileScreen() {
         {dj.galerie_photos && dj.galerie_photos.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Galerie Photos ({dj.galerie_photos.length})</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.galleryScroll}
-            >
-              {dj.galerie_photos.map((photo: string, index: number) => (
-                <TouchableOpacity
-                  key={`photo-${index}`}
-                  onPress={() => {
-                    setSelectedImage(resolveImageUrl(photo) || photo);
-                    setShowImageModal(true);
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <Image
-                    source={{ uri: resolveImageUrl(photo) || '' }}
-                    style={styles.galleryImage}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            {isDesktopWeb ? (
+              <View style={styles.galleryGrid}>
+                {dj.galerie_photos.map((photo: string, index: number) => (
+                  <TouchableOpacity
+                    key={`photo-${index}`}
+                    onPress={() => {
+                      setSelectedImage(resolveImageUrl(photo) || photo);
+                      setShowImageModal(true);
+                    }}
+                    activeOpacity={0.85}
+                    style={styles.galleryGridItem}
+                  >
+                    <Image
+                      source={{ uri: resolveImageUrl(photo) || '' }}
+                      style={styles.galleryGridImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.galleryScroll}
+              >
+                {dj.galerie_photos.map((photo: string, index: number) => (
+                  <TouchableOpacity
+                    key={`photo-${index}`}
+                    onPress={() => {
+                      setSelectedImage(resolveImageUrl(photo) || photo);
+                      setShowImageModal(true);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: resolveImageUrl(photo) || '' }}
+                      style={styles.galleryImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
           </View>
         )}
 
@@ -549,6 +575,7 @@ export default function DJProfileScreen() {
         )}
 
         <View style={styles.footer} />
+        </View>
       </ScrollView>
 
       {/* Image Fullscreen Modal */}
@@ -605,6 +632,21 @@ const styles = StyleSheet.create({
   heroSection: {
     height: 300,
     position: 'relative',
+  },
+  heroSectionDesktop: {
+    height: 480,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: 'hidden',
+  },
+  scrollContentDesktop: {
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+  maxWidthContainer: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
   },
   heroImage: {
     width: '100%',
@@ -966,6 +1008,23 @@ const styles = StyleSheet.create({
   },
   galleryScroll: {
     paddingRight: 20,
+  },
+  galleryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  galleryGridItem: {
+    width: 240,
+    aspectRatio: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1E1E4A',
+  },
+  galleryGridImage: {
+    width: '100%',
+    height: '100%',
   },
   galleryImage: {
     width: 200,
