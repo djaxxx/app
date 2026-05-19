@@ -54,7 +54,11 @@ export default function DashboardScreen() {
   const handleSubscribe = async (plan: 'monthly' | 'annual') => {
     try {
       setSubscribing(true);
-      const originUrl = Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.origin : '';
+      // On web: use current origin. On native (Android): use public web URL as Stripe redirect base.
+      const PUBLIC_WEB_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://dj-directory-fr.preview.emergentagent.com';
+      const originUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+        ? window.location.origin
+        : PUBLIC_WEB_URL;
       const result = await api.createSubscriptionCheckout(originUrl, plan);
       if (Platform.OS === 'web' && typeof window !== 'undefined' && result.checkout_url) {
         window.location.href = result.checkout_url;
@@ -62,8 +66,10 @@ export default function DashboardScreen() {
         const Linking = require('expo-linking');
         Linking.openURL(result.checkout_url);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Subscription error:', error);
+      const Alert = require('react-native').Alert;
+      Alert.alert('Erreur paiement', error?.message || 'Impossible de démarrer le paiement. Réessayez ou contactez le support.');
     } finally {
       setSubscribing(false);
     }
