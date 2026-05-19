@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../src/stores/authStore';
 import { api } from '../src/services/api';
 import { DJCard } from '../src/components/DJCard';
+import { DJCardWeb } from '../src/components/DJCardWeb';
 import { SearchBar } from '../src/components/SearchBar';
 import { Button } from '../src/components/Button';
 import { DJProfile, EventType } from '../src/types';
@@ -253,7 +254,11 @@ export default function HomeScreen() {
             <ActivityIndicator size="large" color="#8B5CF6" style={styles.loader} />
           ) : djs.length > 0 ? (
             djs.map((dj) => (
-              <DJCard key={dj.user_id} dj={dj} onPress={() => handleDJPress(dj.user_id)} />
+              Platform.OS === 'web' ? (
+                <DJCardWeb key={dj.user_id} dj={dj} onPress={() => handleDJPress(dj.user_id)} />
+              ) : (
+                <DJCard key={dj.user_id} dj={dj} onPress={() => handleDJPress(dj.user_id)} />
+              )
             ))
           ) : (
             <View style={styles.emptyState}>
