@@ -87,13 +87,6 @@ export function DJCardWeb({ dj, onPress, onContact }: DJCardWebProps) {
           </Text>
         </View>
 
-        {dj.tarif_indicatif && (
-          <View style={styles.priceRow}>
-            <Ionicons name="cash-outline" size={15} color="#A78BFA" />
-            <Text style={styles.price}>À partir de <Text style={styles.priceValue}>{dj.tarif_indicatif}€</Text></Text>
-          </View>
-        )}
-
         {dj.types_evenements && dj.types_evenements.length > 0 && (
           <View style={styles.tags}>
             {dj.types_evenements.slice(0, 4).map((type, i) => (
