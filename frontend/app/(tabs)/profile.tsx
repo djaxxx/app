@@ -204,7 +204,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Actions</Text>
 
-          {!user?.is_dj && (
+          {!user?.is_dj && Platform.OS !== 'ios' && (
             <TouchableOpacity
               style={styles.actionItem}
               onPress={() => router.push('/dj-register')}

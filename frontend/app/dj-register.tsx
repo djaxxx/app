@@ -20,8 +20,19 @@ import { api } from '../src/services/api';
 import { Button } from '../src/components/Button';
 import { ImageUpload, GalleryUpload } from '../src/components/ImageUpload';
 import { EventType } from '../src/types';
+import IOSBlockedScreen from '../src/components/IOSBlockedScreen';
 
 export default function DJRegisterScreen() {
+  // Apple App Store compliance: DJ subscription/registration not available on iOS
+  if (Platform.OS === 'ios') {
+    return (
+      <IOSBlockedScreen
+        title="Inscription DJ indisponible"
+        message="L'inscription en tant que DJ professionnel n'est pas disponible sur l'application iOS pour le moment. Vous pouvez créer votre compte DJ depuis un navigateur sur ordinateur."
+      />
+    );
+  }
+
   const router = useRouter();
   const { user, isAuthenticated, checkAuth } = useAuthStore();
   const [eventTypes, setEventTypes] = useState<EventType[]>([]);

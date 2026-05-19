@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../src/services/api';
+import IOSBlockedScreen from '../src/components/IOSBlockedScreen';
 
 interface BoostPlan {
   id: string;
@@ -25,6 +26,16 @@ interface BoostPlan {
 }
 
 export default function BoostScreen() {
+  // Apple App Store compliance: paid boost not available on iOS
+  if (Platform.OS === 'ios') {
+    return (
+      <IOSBlockedScreen
+        title="Boost indisponible"
+        message="L'option Boost de profil n'est pas disponible sur l'application iOS pour le moment. Vous pouvez activer le Boost depuis un navigateur sur ordinateur."
+      />
+    );
+  }
+
   const router = useRouter();
   const [plans, setPlans] = useState<BoostPlan[]>([]);
   const [boostStatus, setBoostStatus] = useState<any>(null);

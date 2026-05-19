@@ -118,7 +118,7 @@ export default function HomeScreen() {
                 <Ionicons name="person-circle" size={40} color="#8B5CF6" />
               </View>
             </TouchableOpacity>
-          ) : (
+          ) : Platform.OS === 'ios' ? null : (
             <TouchableOpacity style={styles.djRegisterButton} onPress={handleLogin}>
               <Text style={styles.djRegisterButtonText}>🎧 S'inscrire comme DJ</Text>
             </TouchableOpacity>
@@ -267,7 +267,7 @@ export default function HomeScreen() {
         </View>
 
         {/* CTA for DJs */}
-        {!user?.is_dj && (
+        {!user?.is_dj && Platform.OS !== 'ios' && (
           <View style={styles.ctaSection}>
             <Text style={styles.ctaTitle}>Vous êtes DJ professionnel ?</Text>
             <Text style={styles.ctaSubtitle}>

@@ -157,6 +157,14 @@ export default function DashboardScreen() {
               </View>
             </View>
 
+            {Platform.OS === 'ios' ? (
+              <View style={styles.iosNoticeBox}>
+                <Ionicons name="information-circle" size={24} color="#6366F1" />
+                <Text style={styles.iosNoticeText}>
+                  L'abonnement n'est pas disponible depuis l'application iOS. Vous pouvez gérer votre abonnement depuis un navigateur sur ordinateur.
+                </Text>
+              </View>
+            ) : (
             <View style={styles.subscriptionSection}>
               <Text style={styles.subscriptionChoiceTitle}>Choisissez votre formule</Text>
 
@@ -207,6 +215,7 @@ export default function DashboardScreen() {
                 style={styles.subscribeButton}
               />
             </View>
+            )}
 
             {/* Limited: Edit Profile only */}
             <TouchableOpacity
@@ -239,6 +248,14 @@ export default function DashboardScreen() {
                     <Text style={styles.trialUrgentMessage}>
                       Votre essai gratuit se termine bientot. Choisissez votre forfait maintenant pour rester visible et ne perdre aucune demande client.
                     </Text>
+                    {Platform.OS === 'ios' ? (
+                      <View style={styles.iosNoticeBox}>
+                        <Ionicons name="information-circle" size={20} color="#6366F1" />
+                        <Text style={styles.iosNoticeText}>
+                          Pour gérer votre abonnement, utilisez un navigateur sur ordinateur.
+                        </Text>
+                      </View>
+                    ) : (
                     <View style={styles.trialUrgentPlans}>
                       <TouchableOpacity
                         style={styles.trialUrgentPlanBtn}
@@ -264,6 +281,7 @@ export default function DashboardScreen() {
                         <Text style={styles.trialUrgentPlanLabel}>Meilleure offre</Text>
                       </TouchableOpacity>
                     </View>
+                    )}
                   </View>
                 ) : (
                   <>
@@ -282,6 +300,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
 
+                  {Platform.OS !== 'ios' && (
                   <View style={styles.earlySubscribeCard}>
                     <View style={styles.earlySubscribeHeader}>
                       <Ionicons name="flash" size={20} color="#8B5CF6" />
@@ -310,6 +329,7 @@ export default function DashboardScreen() {
                       </TouchableOpacity>
                     </View>
                   </View>
+                  )}
                   </>
                 )}
               </>
@@ -406,6 +426,7 @@ export default function DashboardScreen() {
                 <Ionicons name="chevron-forward" size={24} color="#666" />
               </TouchableOpacity>
 
+              {Platform.OS !== 'ios' && (
               <TouchableOpacity
                 style={[styles.actionItem, styles.boostActionItem]}
                 onPress={() => router.push('/boost')}
@@ -417,6 +438,7 @@ export default function DashboardScreen() {
                 </View>
                 <Ionicons name="chevron-forward" size={24} color="#FFD700" />
               </TouchableOpacity>
+              )}
             </View>
 
             {/* Recent Reviews */}
@@ -453,6 +475,23 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  iosNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#EEF2FF',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    marginTop: 12,
+  },
+  iosNoticeText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#3730A3',
+    lineHeight: 18,
+  },
   container: {
     flex: 1,
     backgroundColor: '#0B0B24',
